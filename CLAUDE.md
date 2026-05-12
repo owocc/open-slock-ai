@@ -1,46 +1,45 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件仅作为索引。所有规范存放在 [docs/](docs/)。
 
-## Toolchain
+## 开发模式
 
-This is a **Vite+ monorepo** using the `vp` CLI (from `vite-plus`). Vite+ wraps Vite, Vitest, tsdown, Oxlint, and Oxfmt into a single tool. Always use `vp` commands rather than invoking underlying tools directly.
+**md 是源代码，ts 是 md 的实现。** 改代码前先读对应 spec；spec 与代码不一致时以 spec 为准。详见 [docs/workflow.md](docs/workflow.md)。
 
-Package manager: **bun**. Run `vp install` after pulling changes.
+## 输出语言
 
-## Common Commands
+**默认中文**（回答、注释、commit、PR、spec、ADR）。代码标识符与通用技术术语保留英文。用户明确切换时按指定语言输出。详见 [docs/conventions.md](docs/conventions.md#交流语言)。
+
+## 文档入口
+
+- [docs/README.md](docs/README.md) — 文档导航
+- [docs/workflow.md](docs/workflow.md) — 开发流程
+- [docs/conventions.md](docs/conventions.md) — 编码与文档约定
+- [docs/architecture.md](docs/architecture.md) — 系统架构
+- [docs/specs/](docs/specs/) — 模块规范
+- [docs/decisions/](docs/decisions/) — 架构决策记录
+
+## 工具链速查
+
+Vite+ monorepo，包管理器 bun。所有任务通过 `vp` 执行，不直接调用底层工具。
 
 ```bash
-vp install          # install dependencies
-vp check            # format, lint, and type-check
-vp check --fix      # auto-fix formatting and lint issues
-vp test             # run tests in current package
-vp run -r test      # run tests across all packages
-vp run -r build     # build all packages
-vp run dev          # start the website dev server
-vp run ready        # full validation: check + test + build
+vp install          # 安装依赖
+vp check            # 格式化 + lint + 类型检查
+vp check --fix      # 自动修复
+vp test             # 当前包测试
+vp run -r test      # 所有包测试
+vp run -r build     # 构建所有包
+vp run dev          # 启动 website 开发服务器
+vp run ready        # 完整校验：check + test + build
 ```
 
-Within `packages/utils`:
+`packages/utils` 内：`vp pack` 构建库，`vp pack --watch` 监听。
 
-```bash
-vp pack             # build the library (outputs to dist/)
-vp pack --watch     # watch mode
-```
+## 预提交钩子
 
-## Architecture
+根 `vite.config.ts` 配置了 staged-files 钩子，提交时自动跑 `vp check --fix`。失败时修复并**新建 commit**，不要 `--amend`。
 
-```
-apps/
-  website/          # Astro 6 frontend
-packages/
-  utils/            # TypeScript library, built with vp pack (tsdown)
-```
+## 全局 skill
 
-**`apps/website`** is an Astro site. Dev/build via `astro` scripts, but invoked through `vp run website#dev` from the root.
-
-**`packages/utils`** is a publishable ESM library. It exports from `dist/index.mjs` (built output). Source lives in `src/`, tests in `tests/`. Uses `@typescript/native-preview` for fast type generation (`dts: { tsgo: true }`).
-
-## Pre-commit Hook
-
-The root `vite.config.ts` configures a staged-files hook that runs `vp check --fix` automatically on commit. If a commit fails due to this hook, fix the reported issues and create a new commit — do not amend.
+本仓库启用 `karpathy-guidelines`：思考优先、极简实现、手术式变更、目标导向。
