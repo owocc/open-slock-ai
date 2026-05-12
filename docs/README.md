@@ -11,9 +11,14 @@
 
 ### 设计
 
-- [architecture.md](architecture.md) — 系统架构总览
+- [architecture.md](architecture.md) — 系统架构总览（上一代实现的经验与教训）
+- [specs/mvp.md](specs/mvp.md) — **当前目标**：MVP 人机消息闭环
 - [specs/](specs/) — 模块规范（每个 spec 是一份可执行的契约）
 - [decisions/](decisions/) — 架构决策记录（ADR）
+  - [0001](decisions/0001-md-first-development.md) md-first 开发模式
+  - [0002](decisions/0002-mvp-scope-and-deployment.md) MVP 范围与部署拓扑
+  - [0003](decisions/0003-acp-for-agent-runtime.md) ACP 作为 Agent 运行时协议
+  - [0004](decisions/0004-realtime-via-supabase-broadcast.md) Realtime 用 Supabase Broadcast 公开通道
 
 ## 规则速查
 
