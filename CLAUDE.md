@@ -6,7 +6,7 @@
 
 - **md 是源代码** — spec 与代码冲突时以 spec 为准 → [workflow.md](docs/workflow.md)
 - **默认中文输出** — 回答、注释、commit、PR、spec、ADR → [conventions.md](docs/conventions.md#交流语言)
-- **只用 vp 命令** — 不直接调用 vite/vitest/tsc/oxlint → [conventions.md](docs/conventions.md#工具链)
+- **只用 vp 或 bun** — 使用 Vite Plus (`vp`) 或 `bun run`，不直接调用 vite/vitest/tsc/oxlint/npm/pnpm/yarn → [conventions.md](docs/conventions.md#工具链)
 - **spec/实现/测试同步** — PR 不允许只改其一 → [workflow.md](docs/workflow.md#pr-规则)
 
 ## 📚 规范文档
@@ -32,6 +32,7 @@
 
 ```bash
 vp check --fix      # 格式化 + lint + 类型检查（提交前必跑）
+vp test             # 运行测试（调用 vitest）
 vp run -r test      # 所有包测试
 vp run ready        # 完整校验：check + test + build
 vp run dev          # 启动 website 开发服务器

@@ -24,13 +24,28 @@
 
 ## 工具链
 
-- 包管理 bun；任务入口 `vp`（Vite+）。不要直接调用 vite/vitest/tsc/oxlint。
-- 常用命令（详见根目录 CLAUDE.md）：
-  - `vp install` — 安装依赖
-  - `vp check` — 格式化 + lint + 类型检查
-  - `vp run -r test` — 跑所有包的测试
-  - `vp run ready` — 完整校验：check + test + build
-- 提交前会自动跑 `vp check --fix`；失败时修复后**新建 commit**，不要 `--amend`。
+本项目使用 **Vite Plus** (`vp`) 作为包管理器和任务运行器。
+
+**命令规则**：
+
+- ✅ **优先使用 `vp`** — 所有任务通过 `vp` 执行
+- ✅ **允许使用 `bun`** — 仅用于 `bun run <script>` 执行 package.json 中定义的脚本
+- ❌ **禁止直接调用** — 不要直接调用 `vite` / `vitest` / `tsc` / `oxlint` / `npm` / `pnpm` / `yarn`
+
+**常用命令**（详见根目录 CLAUDE.md）：
+
+- `vp install` — 安装依赖
+- `vp check` — 格式化 + lint + 类型检查
+- `vp check --fix` — 自动修复格式和 lint 问题
+- `vp test` — 运行测试（调用 vitest）
+- `vp run -r test` — 跨所有包运行测试
+- `vp run ready` — 完整校验：check + test + build
+- `bun run <script>` — 执行 package.json 中定义的脚本（如 `bun run db:migrate`）
+
+**预提交钩子**：
+
+- 提交前会自动跑 `vp check --fix`
+- 失败时修复后**新建 commit**，不要 `--amend`
 
 ## 提交信息
 
