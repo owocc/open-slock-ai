@@ -1,0 +1,14 @@
+{
+  "name": "@open-slock/daemon",
+  "bin": {
+    "open-slock-daemon": "dist/index.js"
+  },
+  "type": "module",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:"
+  }
+}
