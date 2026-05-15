@@ -8,7 +8,7 @@ if (!url) throw new Error("DATABASE_URL is required for drizzle-kit");
 
 export default defineConfig({
   out: "./drizzle",
-  schema: "./src/db/schema.ts",
+  schema: "./server/db/schemas",
   dialect: "postgresql",
   dbCredentials: { url },
 });

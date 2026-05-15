@@ -1,5 +1,5 @@
 {
-  "name": "daemon",
+  "name": "core",
   "version": "0.0.0",
   "description": "A starter for creating a TypeScript package.",
   "homepage": "https://github.com/author/library#readme",
@@ -29,6 +29,12 @@
     "test": "vp test",
     "check": "vp check",
     "prepublishOnly": "vp run build"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.21.1",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.141",
+    "@openai/codex-sdk": "^0.130.0",
+    "@opencode-ai/sdk": "^1.14.50"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
