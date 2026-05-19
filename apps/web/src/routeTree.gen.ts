@@ -9,26 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ProviderIdRouteImport } from './routes/$providerId'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardServerIdRouteImport } from './routes/dashboard.$serverId'
-import { Route as DashboardServerIdChannelIdRouteImport } from './routes/dashboard.$serverId.$channelId'
+import { Route as ProviderIdRegisterRouteImport } from './routes/$providerId/register'
+import { Route as ProviderIdLoginRouteImport } from './routes/$providerId/login'
+import { Route as ProviderIdDashboardRouteImport } from './routes/$providerId/dashboard'
+import { Route as ProviderIdDashboardServerIdRouteImport } from './routes/$providerId/dashboard.$serverId'
+import { Route as ProviderIdDashboardServerIdChannelIdRouteImport } from './routes/$providerId/dashboard.$serverId.$channelId'
 
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const ProviderIdRoute = ProviderIdRouteImport.update({
+  id: '/$providerId',
+  path: '/$providerId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -36,98 +27,104 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardServerIdRoute = DashboardServerIdRouteImport.update({
-  id: '/$serverId',
-  path: '/$serverId',
-  getParentRoute: () => DashboardRoute,
+const ProviderIdRegisterRoute = ProviderIdRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => ProviderIdRoute,
 } as any)
-const DashboardServerIdChannelIdRoute =
-  DashboardServerIdChannelIdRouteImport.update({
+const ProviderIdLoginRoute = ProviderIdLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => ProviderIdRoute,
+} as any)
+const ProviderIdDashboardRoute = ProviderIdDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ProviderIdRoute,
+} as any)
+const ProviderIdDashboardServerIdRoute =
+  ProviderIdDashboardServerIdRouteImport.update({
+    id: '/$serverId',
+    path: '/$serverId',
+    getParentRoute: () => ProviderIdDashboardRoute,
+  } as any)
+const ProviderIdDashboardServerIdChannelIdRoute =
+  ProviderIdDashboardServerIdChannelIdRouteImport.update({
     id: '/$channelId',
     path: '/$channelId',
-    getParentRoute: () => DashboardServerIdRoute,
+    getParentRoute: () => ProviderIdDashboardServerIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/$serverId': typeof DashboardServerIdRouteWithChildren
-  '/dashboard/$serverId/$channelId': typeof DashboardServerIdChannelIdRoute
+  '/$providerId': typeof ProviderIdRouteWithChildren
+  '/$providerId/dashboard': typeof ProviderIdDashboardRouteWithChildren
+  '/$providerId/login': typeof ProviderIdLoginRoute
+  '/$providerId/register': typeof ProviderIdRegisterRoute
+  '/$providerId/dashboard/$serverId': typeof ProviderIdDashboardServerIdRouteWithChildren
+  '/$providerId/dashboard/$serverId/$channelId': typeof ProviderIdDashboardServerIdChannelIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/$serverId': typeof DashboardServerIdRouteWithChildren
-  '/dashboard/$serverId/$channelId': typeof DashboardServerIdChannelIdRoute
+  '/$providerId': typeof ProviderIdRouteWithChildren
+  '/$providerId/dashboard': typeof ProviderIdDashboardRouteWithChildren
+  '/$providerId/login': typeof ProviderIdLoginRoute
+  '/$providerId/register': typeof ProviderIdRegisterRoute
+  '/$providerId/dashboard/$serverId': typeof ProviderIdDashboardServerIdRouteWithChildren
+  '/$providerId/dashboard/$serverId/$channelId': typeof ProviderIdDashboardServerIdChannelIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
-  '/dashboard/$serverId': typeof DashboardServerIdRouteWithChildren
-  '/dashboard/$serverId/$channelId': typeof DashboardServerIdChannelIdRoute
+  '/$providerId': typeof ProviderIdRouteWithChildren
+  '/$providerId/dashboard': typeof ProviderIdDashboardRouteWithChildren
+  '/$providerId/login': typeof ProviderIdLoginRoute
+  '/$providerId/register': typeof ProviderIdRegisterRoute
+  '/$providerId/dashboard/$serverId': typeof ProviderIdDashboardServerIdRouteWithChildren
+  '/$providerId/dashboard/$serverId/$channelId': typeof ProviderIdDashboardServerIdChannelIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/register'
-    | '/dashboard/$serverId'
-    | '/dashboard/$serverId/$channelId'
+    | '/$providerId'
+    | '/$providerId/dashboard'
+    | '/$providerId/login'
+    | '/$providerId/register'
+    | '/$providerId/dashboard/$serverId'
+    | '/$providerId/dashboard/$serverId/$channelId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/register'
-    | '/dashboard/$serverId'
-    | '/dashboard/$serverId/$channelId'
+    | '/$providerId'
+    | '/$providerId/dashboard'
+    | '/$providerId/login'
+    | '/$providerId/register'
+    | '/$providerId/dashboard/$serverId'
+    | '/$providerId/dashboard/$serverId/$channelId'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
-    | '/login'
-    | '/register'
-    | '/dashboard/$serverId'
-    | '/dashboard/$serverId/$channelId'
+    | '/$providerId'
+    | '/$providerId/dashboard'
+    | '/$providerId/login'
+    | '/$providerId/register'
+    | '/$providerId/dashboard/$serverId'
+    | '/$providerId/dashboard/$serverId/$channelId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
-  LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
+  ProviderIdRoute: typeof ProviderIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/$providerId': {
+      id: '/$providerId'
+      path: '/$providerId'
+      fullPath: '/$providerId'
+      preLoaderRoute: typeof ProviderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -137,51 +134,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/$serverId': {
-      id: '/dashboard/$serverId'
-      path: '/$serverId'
-      fullPath: '/dashboard/$serverId'
-      preLoaderRoute: typeof DashboardServerIdRouteImport
-      parentRoute: typeof DashboardRoute
+    '/$providerId/register': {
+      id: '/$providerId/register'
+      path: '/register'
+      fullPath: '/$providerId/register'
+      preLoaderRoute: typeof ProviderIdRegisterRouteImport
+      parentRoute: typeof ProviderIdRoute
     }
-    '/dashboard/$serverId/$channelId': {
-      id: '/dashboard/$serverId/$channelId'
+    '/$providerId/login': {
+      id: '/$providerId/login'
+      path: '/login'
+      fullPath: '/$providerId/login'
+      preLoaderRoute: typeof ProviderIdLoginRouteImport
+      parentRoute: typeof ProviderIdRoute
+    }
+    '/$providerId/dashboard': {
+      id: '/$providerId/dashboard'
+      path: '/dashboard'
+      fullPath: '/$providerId/dashboard'
+      preLoaderRoute: typeof ProviderIdDashboardRouteImport
+      parentRoute: typeof ProviderIdRoute
+    }
+    '/$providerId/dashboard/$serverId': {
+      id: '/$providerId/dashboard/$serverId'
+      path: '/$serverId'
+      fullPath: '/$providerId/dashboard/$serverId'
+      preLoaderRoute: typeof ProviderIdDashboardServerIdRouteImport
+      parentRoute: typeof ProviderIdDashboardRoute
+    }
+    '/$providerId/dashboard/$serverId/$channelId': {
+      id: '/$providerId/dashboard/$serverId/$channelId'
       path: '/$channelId'
-      fullPath: '/dashboard/$serverId/$channelId'
-      preLoaderRoute: typeof DashboardServerIdChannelIdRouteImport
-      parentRoute: typeof DashboardServerIdRoute
+      fullPath: '/$providerId/dashboard/$serverId/$channelId'
+      preLoaderRoute: typeof ProviderIdDashboardServerIdChannelIdRouteImport
+      parentRoute: typeof ProviderIdDashboardServerIdRoute
     }
   }
 }
 
-interface DashboardServerIdRouteChildren {
-  DashboardServerIdChannelIdRoute: typeof DashboardServerIdChannelIdRoute
+interface ProviderIdDashboardServerIdRouteChildren {
+  ProviderIdDashboardServerIdChannelIdRoute: typeof ProviderIdDashboardServerIdChannelIdRoute
 }
 
-const DashboardServerIdRouteChildren: DashboardServerIdRouteChildren = {
-  DashboardServerIdChannelIdRoute: DashboardServerIdChannelIdRoute,
+const ProviderIdDashboardServerIdRouteChildren: ProviderIdDashboardServerIdRouteChildren =
+  {
+    ProviderIdDashboardServerIdChannelIdRoute:
+      ProviderIdDashboardServerIdChannelIdRoute,
+  }
+
+const ProviderIdDashboardServerIdRouteWithChildren =
+  ProviderIdDashboardServerIdRoute._addFileChildren(
+    ProviderIdDashboardServerIdRouteChildren,
+  )
+
+interface ProviderIdDashboardRouteChildren {
+  ProviderIdDashboardServerIdRoute: typeof ProviderIdDashboardServerIdRouteWithChildren
 }
 
-const DashboardServerIdRouteWithChildren =
-  DashboardServerIdRoute._addFileChildren(DashboardServerIdRouteChildren)
-
-interface DashboardRouteChildren {
-  DashboardServerIdRoute: typeof DashboardServerIdRouteWithChildren
+const ProviderIdDashboardRouteChildren: ProviderIdDashboardRouteChildren = {
+  ProviderIdDashboardServerIdRoute:
+    ProviderIdDashboardServerIdRouteWithChildren,
 }
 
-const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardServerIdRoute: DashboardServerIdRouteWithChildren,
+const ProviderIdDashboardRouteWithChildren =
+  ProviderIdDashboardRoute._addFileChildren(ProviderIdDashboardRouteChildren)
+
+interface ProviderIdRouteChildren {
+  ProviderIdDashboardRoute: typeof ProviderIdDashboardRouteWithChildren
+  ProviderIdLoginRoute: typeof ProviderIdLoginRoute
+  ProviderIdRegisterRoute: typeof ProviderIdRegisterRoute
 }
 
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
+const ProviderIdRouteChildren: ProviderIdRouteChildren = {
+  ProviderIdDashboardRoute: ProviderIdDashboardRouteWithChildren,
+  ProviderIdLoginRoute: ProviderIdLoginRoute,
+  ProviderIdRegisterRoute: ProviderIdRegisterRoute,
+}
+
+const ProviderIdRouteWithChildren = ProviderIdRoute._addFileChildren(
+  ProviderIdRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRouteWithChildren,
-  LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
+  ProviderIdRoute: ProviderIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

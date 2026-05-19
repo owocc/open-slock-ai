@@ -39,10 +39,30 @@ export function getEndpoints(): ServerEndpoint[] {
   }
 }
 
+export const isPrimaryServer = (id: string): boolean => id === "default-local" || id === "primary";
+
+export function mapRouteIdToEndpointId(routeId: string): string {
+  return routeId === "primary" ? "default-local" : routeId;
+}
+
+export function mapEndpointIdToRouteId(epId: string): string {
+  return epId === "default-local" ? "primary" : epId;
+}
+
 export function saveEndpoints(endpoints: ServerEndpoint[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEYS.ENDPOINTS, JSON.stringify(endpoints));
+    // 保护默认的主服务器配置，其名称和 baseUrl 是内置且不变的
+    const sanitized = endpoints.map((ep) => {
+      if (ep.id === "default-local") {
+        return DEFAULT_ENDPOINT;
+      }
+      return ep;
+    });
+    if (!sanitized.some((ep) => ep.id === "default-local")) {
+      sanitized.unshift(DEFAULT_ENDPOINT);
+    }
+    localStorage.setItem(STORAGE_KEYS.ENDPOINTS, JSON.stringify(sanitized));
   } catch {
     console.error("Failed to save endpoints to localStorage");
   }

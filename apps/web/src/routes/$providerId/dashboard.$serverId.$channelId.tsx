@@ -1,11 +1,12 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getApiChannelsByChannelIdMessages, postApiChannelsByChannelIdMessages } from "openapi";
 import { Send } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { SidebarTrigger } from "#/components/ui/sidebar";
 
-export const Route = createFileRoute("/dashboard/$serverId/$channelId")({
+export const Route = createFileRoute("/$providerId/dashboard/$serverId/$channelId")({
   component: ChannelChatComponent,
 });
 
@@ -18,7 +19,7 @@ interface MessageItem {
 }
 
 function ChannelChatComponent() {
-  const { channelId } = useParams({ from: "/dashboard/$serverId/$channelId" });
+  const { channelId } = Route.useParams();
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,7 @@ function ChannelChatComponent() {
     <div className="flex flex-1 flex-col h-full overflow-hidden bg-canvas font-sans relative">
       {/* 顶部活动频道栏 */}
       <div className="flex h-14 items-center px-6 border-b border-hairline bg-surface shrink-0">
+        <SidebarTrigger className="mr-3 cursor-pointer shrink-0" />
         <span className="text-title text-ink font-semibold tracking-wide flex items-center gap-1.5">
           <span className="text-muted">#</span> 聊天频道
         </span>

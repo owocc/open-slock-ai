@@ -5,7 +5,8 @@ import {
   getEndpoints,
   saveEndpoints,
   getActiveEndpoint,
-  setActiveEndpointId,
+  mapEndpointIdToRouteId,
+  isPrimaryServer,
 } from "#/lib/server-config";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -31,14 +32,20 @@ export function ServerSelector() {
   const [useBffProxy, setUseBffProxy] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  const refreshLocalState = () => {
     setEndpoints(getEndpoints());
     setActiveEp(getActiveEndpoint());
+  };
+
+  useEffect(() => {
+    refreshLocalState();
   }, []);
 
   const handleSelect = (id: string) => {
-    setActiveEndpointId(id);
+    const routeId = mapEndpointIdToRouteId(id);
     setIsOpen(false);
+    // 重定向至动态根路径，从而重置ApiClient并在URL中完整记录所选的提供商标识
+    window.location.href = `/${routeId}`;
   };
 
   const handleStartEdit = (ep: ServerEndpoint, e: React.MouseEvent) => {
@@ -60,7 +67,6 @@ export function ServerSelector() {
     }
 
     try {
-      // 简单正则校验 URL
       new URL(newUrl);
     } catch {
       setError("输入的主机 URL 格式不正确");
@@ -70,16 +76,19 @@ export function ServerSelector() {
     const cleanUrl = newUrl.replace(/\/$/, ""); // 去除最后的斜杠
 
     let updatedList: ServerEndpoint[];
+    let targetId = editingId;
+
     if (editingId) {
+      // 检查是否在更改保护的主服务
+      if (isPrimaryServer(editingId)) {
+        setError("系统主服务器（Primary）核心配置不支持编辑修改");
+        return;
+      }
+
       updatedList = endpoints.map((ep) =>
         ep.id === editingId ? { ...ep, name: newName.trim(), baseUrl: cleanUrl, useBffProxy } : ep,
       );
-      setEndpoints(updatedList);
       saveEndpoints(updatedList);
-      // 如果当前修改的是正在使用的服务器，刷新以应用配置更新
-      if (activeEp?.id === editingId) {
-        setActiveEndpointId(editingId);
-      }
     } else {
       const newEp: ServerEndpoint = {
         id: `custom-${Date.now()}`,
@@ -87,27 +96,29 @@ export function ServerSelector() {
         baseUrl: cleanUrl,
         useBffProxy: useBffProxy,
       };
+      targetId = newEp.id;
       updatedList = [...endpoints, newEp];
-      setEndpoints(updatedList);
       saveEndpoints(updatedList);
-      // 默认切到新添加的服务器
-      setActiveEndpointId(newEp.id);
     }
 
-    // 重置表单状态
+    // 重置并导航至对应实例
     setEditingId(null);
     setNewName("");
     setNewUrl("");
     setUseBffProxy(true);
     setShowAddForm(false);
     setIsOpen(false);
+
+    if (targetId) {
+      const routeId = mapEndpointIdToRouteId(targetId);
+      window.location.href = `/${routeId}`;
+    }
   };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    // 无法删除最后一个或当前的服务器
-    if (endpoints.length <= 1) {
-      alert("必须保留至少一个服务器配置");
+    if (isPrimaryServer(id)) {
+      alert("内置主服务器是系统的核心根提供商，不能被卸载或删除");
       return;
     }
     if (activeEp?.id === id) {
@@ -116,8 +127,8 @@ export function ServerSelector() {
     }
 
     const updated = endpoints.filter((ep) => ep.id !== id);
-    setEndpoints(updated);
     saveEndpoints(updated);
+    refreshLocalState();
   };
 
   if (!activeEp) return null;

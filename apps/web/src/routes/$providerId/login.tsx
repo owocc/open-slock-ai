@@ -1,39 +1,38 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { authClient } from "../lib/auth-client";
+import { authClient } from "../../lib/auth-client";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { ServerSelector } from "#/components/server-selector";
 
-export const Route = createFileRoute("/register")({
-  component: RegisterComponent,
+export const Route = createFileRoute("/$providerId/login")({
+  component: LoginComponent,
 });
 
-function RegisterComponent() {
+function LoginComponent() {
+  const { providerId } = Route.useParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const res = await authClient.signUp.email({
+      const res = await authClient.signIn.email({
         email,
         password,
-        name,
       });
       if (res.error) {
-        setError(res.error.message || "注册失败");
+        setError(res.error.message || "登录失败，请检查账号密码");
       } else {
-        void navigate({ to: "/dashboard" });
+        void navigate({ to: "/$providerId/dashboard", params: { providerId } });
       }
     } catch (err: any) {
-      setError(err?.message || "注册时发生错误");
+      setError(err?.message || "登录时发生错误");
     } finally {
       setLoading(false);
     }
@@ -49,14 +48,14 @@ function RegisterComponent() {
       <div className="w-full max-w-4xl flex flex-col gap-6">
         <div className="w-full bg-surface rounded-lg border border-hairline shadow-soft overflow-hidden animate-in fade-in duration-200">
           <div className="grid md:grid-cols-2">
-            {/* 左侧逻辑注册表单 */}
+            {/* 左侧逻辑登录表单 */}
             <form
-              className="p-8 md:p-12 space-y-5 flex flex-col justify-center"
-              onSubmit={handleRegister}
+              className="p-8 md:p-12 space-y-6 flex flex-col justify-center"
+              onSubmit={handleLogin}
             >
-              <div className="flex flex-col items-center gap-1.5 text-center">
-                <h1 className="text-display text-ink font-semibold">创建账户</h1>
-                <p className="text-meta text-muted text-balance">注册并开启您的自托管协作空间</p>
+              <div className="flex flex-col items-center gap-2 text-center">
+                <h1 className="text-display text-ink font-semibold">欢迎回来</h1>
+                <p className="text-meta text-muted text-balance">登录您的 OpenSlock 协作账号</p>
               </div>
 
               {error && (
@@ -66,21 +65,7 @@ function RegisterComponent() {
               )}
 
               {/* 输入区域 */}
-              <div className="space-y-3.5">
-                <div className="space-y-1">
-                  <label className="block text-meta text-muted font-medium" htmlFor="name">
-                    用户名
-                  </label>
-                  <Input
-                    id="name"
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="请输入您的用户名"
-                  />
-                </div>
-
+              <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="block text-meta text-muted font-medium" htmlFor="email">
                     邮箱地址
@@ -96,27 +81,35 @@ function RegisterComponent() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-meta text-muted font-medium" htmlFor="password">
-                    安全密码
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-meta text-muted font-medium" htmlFor="password">
+                      安全密码
+                    </label>
+                    <a
+                      href="#"
+                      className="text-meta text-muted hover:text-ink hover:underline transition-colors"
+                    >
+                      忘记密码？
+                    </a>
+                  </div>
                   <Input
                     id="password"
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="创建账户密码"
+                    placeholder="请输入密码"
                   />
                 </div>
               </div>
 
-              <div className="space-y-4 pt-1">
+              <div className="space-y-4 pt-2">
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "注册中..." : "创建并开始使用"}
+                  {loading ? "登录中..." : "安全登录"}
                 </Button>
 
                 {/* 分隔符 */}
-                <div className="relative flex py-1 items-center">
+                <div className="relative flex py-2 items-center">
                   <div className="flex-grow border-t border-hairline"></div>
                   <span className="flex-shrink mx-4 text-[11px] text-muted-soft text-caption-upper font-medium bg-surface px-2 select-none">
                     或使用第三方账号
@@ -133,7 +126,7 @@ function RegisterComponent() {
                         fill="currentColor"
                       />
                     </svg>
-                    <span className="sr-only">Apple 注册</span>
+                    <span className="sr-only">Apple 登录</span>
                   </Button>
                   <Button variant="outline" type="button" className="h-10 rounded-md">
                     <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -142,7 +135,7 @@ function RegisterComponent() {
                         fill="currentColor"
                       />
                     </svg>
-                    <span className="sr-only">Google 注册</span>
+                    <span className="sr-only">Google 登录</span>
                   </Button>
                   <Button variant="outline" type="button" className="h-10 rounded-md">
                     <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -151,15 +144,19 @@ function RegisterComponent() {
                         fill="currentColor"
                       />
                     </svg>
-                    <span className="sr-only">Meta 注册</span>
+                    <span className="sr-only">Meta 登录</span>
                   </Button>
                 </div>
               </div>
 
               <p className="text-meta text-center text-muted font-normal">
-                已有账号？{" "}
-                <Link to="/login" className="font-semibold text-ink-soft hover:underline">
-                  立即登录
+                还没有账号？{" "}
+                <Link
+                  to="/$providerId/register"
+                  params={{ providerId }}
+                  className="font-semibold text-ink-soft hover:underline"
+                >
+                  立即注册
                 </Link>
               </p>
             </form>
