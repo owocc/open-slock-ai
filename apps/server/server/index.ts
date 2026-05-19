@@ -25,12 +25,7 @@ import { ResponseError } from "./utils/auth";
 
 import { swaggerUI } from "@hono/swagger-ui";
 import { apiReference } from "@scalar/hono-api-reference";
-import {
-  describeRoute,
-  openAPIRouteHandler,
-  validator as zValidator,
-  resolver,
-} from "hono-openapi";
+import { describeRoute, validator as zValidator, resolver, generateSpecs } from "hono-openapi";
 import "zod-openapi/extend";
 
 // 1. 服务启动时，显式执行数据库初始化 Seed 操作
@@ -311,20 +306,80 @@ app.get(
   },
 );
 
+function mergeOpenAPISchemas(honoSchema: any, authSchema: any) {
+  const merged = { ...honoSchema };
+
+  // 1. 合并路径 (Paths)，并为 Better Auth 接口路径加 "/api/auth" 前缀
+  merged.paths = { ...merged.paths };
+  if (authSchema && authSchema.paths) {
+    for (const [pathKey, pathItem] of Object.entries(authSchema.paths)) {
+      const prefixedKey = `/api/auth${pathKey}`;
+
+      const patchedPathItem = { ...(pathItem as any) };
+      for (const method of Object.keys(patchedPathItem)) {
+        if (typeof patchedPathItem[method] === "object" && patchedPathItem[method] !== null) {
+          patchedPathItem[method] = {
+            ...patchedPathItem[method],
+            tags: ["Authentication"],
+          };
+        }
+      }
+
+      merged.paths[prefixedKey] = patchedPathItem;
+    }
+  }
+
+  // 2. 合并基础组件 (Components)
+  merged.components = merged.components || {};
+
+  // 合并数据模型 (Schemas)
+  if (authSchema && authSchema.components?.schemas) {
+    merged.components.schemas = {
+      ...merged.components.schemas,
+      ...authSchema.components.schemas,
+    };
+  }
+
+  // 合并安全方案 (Security Schemes)
+  if (authSchema && authSchema.components?.securitySchemes) {
+    merged.components.securitySchemes = {
+      ...merged.components.securitySchemes,
+      ...authSchema.components.securitySchemes,
+    };
+  }
+
+  return merged;
+}
+
 // 挂载 OpenAPI Docs JSON 规范导出端点
-app.get(
-  "/api/openapi.json",
-  openAPIRouteHandler(app, {
-    documentation: {
-      info: {
-        title: "Slock AI API 服务",
-        version: "1.0.0",
-        description: "开源自托管 AI 服务端接口 API 说明文档",
+app.get("/api/openapi.json", async (c) => {
+  const honoSchema = await generateSpecs(
+    app,
+    {
+      documentation: {
+        info: {
+          title: "Slock AI API 服务",
+          version: "1.0.0",
+          description: "开源自托管 AI 服务端接口 API 说明文档",
+        },
+        servers: [{ url: "http://localhost:3000", description: "本地开发服务器" }],
       },
-      servers: [{ url: "http://localhost:3000", description: "本地开发服务器" }],
     },
-  }),
-);
+    c,
+  );
+
+  let authSchema: any = {};
+  try {
+    if (typeof auth.api?.generateOpenAPISchema === "function") {
+      authSchema = await auth.api.generateOpenAPISchema();
+    }
+  } catch (error) {
+    console.error("Failed to generate Better Auth OpenAPI schema:", error);
+  }
+
+  const mergedSchema = mergeOpenAPISchemas(honoSchema, authSchema);
+  return c.json(mergedSchema);
+});
 
 // 挂载 Swagger UI 终点界面
 app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));

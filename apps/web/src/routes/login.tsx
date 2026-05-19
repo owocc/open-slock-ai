@@ -3,6 +3,7 @@ import { useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { ServerSelector } from "#/components/server-selector";
 
 export const Route = createFileRoute("/login")({
   component: LoginComponent,
@@ -37,7 +38,12 @@ function LoginComponent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 md:p-8 bg-canvas font-sans">
+    <div className="flex min-h-screen items-center justify-center p-4 md:p-8 bg-canvas font-sans relative">
+      {/* 顶部或侧边的服务器选择控制区 */}
+      <div className="absolute top-4 right-4 z-40">
+        <ServerSelector />
+      </div>
+
       <div className="w-full max-w-4xl flex flex-col gap-6">
         <div className="w-full bg-surface rounded-lg border border-hairline shadow-soft overflow-hidden animate-in fade-in duration-200">
           <div className="grid md:grid-cols-2">
