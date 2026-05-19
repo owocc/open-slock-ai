@@ -5,15 +5,15 @@
 
 ## 背景
 
-完全重建 OpenSlock。上一代踩坑主因不是功能错，而是范围过大 + 类型门控缺失（见 `docs/architecture.md`）。需要先锚定一个"证明链路"的最小闭环，而不是"重建所有功能"。
+作为对标 slock.ai 的开源自部署平台，OpenSlock 支持开发者将其部署在私有云或本地服务器上，并可以自由扩展功能。为了在第一阶段跑通并证明这一整套私有化架构，我们需要先锚定一个“端到端全链路”的最小闭环，建立坚实的底层核心。
 
-核心卖点需要在 MVP 就呈现：**AI 工具跑在用户本地，通过 Bridge 连接到远端 Web UI**，人类和多个本地 Agent 在频道里共享消息。
+核心卖点需要在 MVP 就呈现：**AI 工具跑在用户本地电脑，通过守护进程 Bridge 安全地连接到远端/自部署的 Web UI**，人类用户和多个本地 Agent 在频道里实时共享消息并相互 @mention 进行多 Agent 协作。
 
 ## 决策
 
 ### MVP 闭环
 
-用户在任意设备打开 Web UI → 邮箱登录 → 进入**内置默认 server** 的 `#general` → 发消息 `@coder 你好` → 用户本地 Bridge 轮询到消息 → 通过 ACP 调本地 CLI → 响应写回 → Web UI 收到 Realtime 通知后刷新 → 若响应含 `@reviewer` 触发下一轮。
+用户在任意设备打开 Web UI → 邮箱登录 → 进入**内置默认 server** 的 `#general` → 发消息 `@coder 你好` → 用户本地 Bridge 轮询到消息 → 调本地 CLI 执行并流式解析响应 → 响应写回 → Web UI 收到 Realtime 通知后刷新 → 若响应含 `@reviewer` 触发下一轮。
 
 ### MVP 范围
 
@@ -26,7 +26,7 @@
 - 电脑注册 + machine key 生成（Web UI 操作）
 - Bridge CLI（`npx @slock-ai/daemon`）扫描本地 AI CLI
 - 创建 Agent：选电脑 + 选 runtime（claude / opencode）
-- Agent 通过 ACP 响应 @mention
+- Agent 通过本地 CLI 流式响应 @mention
 - 反循环保护（最多 N 轮）
 
 **排除**（留到后续）：

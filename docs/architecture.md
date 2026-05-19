@@ -1,6 +1,6 @@
 # OpenSlock — Architecture Document
 
-> 本文档是从现有实现中提取的完整架构记录，用于指导下一次重建。
+> 本文档定义 OpenSlock 的系统架构设计与核心规约，供自托管部署与开发定制参考。
 
 ---
 
@@ -177,7 +177,7 @@ agents
   ownerId     text
   serverId    text
   machineKeyId text → machineKeys.id
-  runtimeType text                           -- "claude-code-direct" | "acp-*" | "custom"
+  runtimeType text                           -- "claude" | "opencode" | "custom"
   runtimeConfig text (JSON)                 -- { cronPrompt, cronIntervalMinutes, ... }
   runtimePath text
   sessionId   text
@@ -247,7 +247,7 @@ outgoingWebhooks                             -- 出站 webhook
 
 ## 功能清单
 
-### 已实现（可作为重建目标）
+### 支持的功能清单（可作为二次开发与自托管扩展参考）
 
 **工作区**
 
@@ -402,7 +402,7 @@ openslock webhook list|create|delete|test
 
 ---
 
-## 当前实现的问题（重建时避免）
+## 规避的系统设计反模式（设计防踩坑指南）
 
 ### 根本原因
 
@@ -425,7 +425,7 @@ openslock webhook list|create|delete|test
 
 ---
 
-## 重建技术选型建议
+## 自部署与二次开发技术选型建议
 
 ### 保留
 
@@ -469,7 +469,7 @@ openslock webhook list|create|delete|test
 
 ## API 设计思路
 
-本项目用 TanStack Start 的 `createServerFn` 作为 RPC 层，但其核心设计模式与框架无关，重建时可直接迁移到 Next.js Server Actions、tRPC、或标准 REST 路由。
+本项目用 TanStack Start 的 `createServerFn` 作为 RPC 层，但其核心设计模式与框架无关，后续扩展或自建时可平滑迁移到 Next.js Server Actions、tRPC、或标准 REST 路由。
 
 ---
 
@@ -700,7 +700,7 @@ return rows.reverse();
 
 ### 10. 全文搜索：LIKE 模式匹配
 
-当前用 `LIKE '%query%'`，简单但够用。重建时可替换为 PostgreSQL 的 `tsvector` 全文索引。
+当前用 `LIKE '%query%'`，简单但够用。后续扩展时可替换为 PostgreSQL 的 `tsvector` 全文索引。
 
 ```ts
 // 当前实现
@@ -735,7 +735,7 @@ const [maxResult] = await db
 const nextNumber = (maxResult?.max ?? 0) + 1;
 ```
 
-**注意**：高并发下有竞态风险。重建时建议改用 PostgreSQL 序列或数据库级别的 `SERIAL` 列。
+**注意**：高并发下有竞态风险。二次开发时建议改用 PostgreSQL 序列或数据库级别的 `SERIAL` 列。
 
 ---
 
@@ -755,7 +755,7 @@ const userId = await getCurrentUserId();
 if (!userId) throw new Error("Unauthorized");
 ```
 
-**重建建议**：用 tRPC 的 `protectedProcedure` 或 Next.js middleware 统一处理，不在每个函数里重复鉴权。
+**扩展建议**：用 tRPC 的 `protectedProcedure` 或 Next.js middleware 统一处理，不在每个函数里重复鉴权。
 
 ---
 
@@ -791,7 +791,7 @@ for (const msg of messages) {
   out.push(await attachSenderName(db, msg)); // 每条消息一次查询
 }
 
-// 重建建议：批量查询后 Map 映射
+// 性能优化建议：批量查询后 Map 映射
 const humanIds = messages.filter((m) => m.senderType === "human").map((m) => m.senderId);
 const agentIds = messages.filter((m) => m.senderType === "agent").map((m) => m.senderId);
 

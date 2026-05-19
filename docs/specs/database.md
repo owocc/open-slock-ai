@@ -2,37 +2,33 @@
 
 ## 概述
 
-本文档定义 OpenSlock MVP 的完整数据库 schema，基于 PostgreSQL + Drizzle ORM，集成 Better Auth。
+本文档定义 OpenSlock 的完整数据库 schema，基于 PostgreSQL + Drizzle ORM，集成 Better Auth。
 
 **设计原则**：
 
-- 所有时间字段统一使用 `timestamp with time zone`（不再混用 `text` 存 ISO-8601）
-- 主键统一使用 `text` 类型（存储 CUID2 或类似格式）
-- 外键统一使用 `CASCADE` 删除策略
-- Better Auth 表遵循其官方 schema 定义
+- 所有时间字段统一使用 `timestamp with time zone` (对应 Drizzle 的 `timestamp({ withTimezone: true })`)。
+- 主键和外键引用的标识符统一使用 `text` 类型，采用 CUID2 或 UUID。
+- 外键关系均使用级联删除策略（`ON DELETE CASCADE`），部分幂等自引用字段（如 `replyTo`）除外。
+- 采用 Better Auth 接管核心用户及会话认证，业务数据表引用 `user.id`。
 
 ## Better Auth 表
 
-Better Auth 通过其 CLI 自动生成和管理认证相关的表。这些表的具体字段由 Better Auth 版本决定，我们不在此 spec 中详细定义。
+Better Auth 通过其 CLI 与库自动生成和管理认证相关的核心表：`user`、`session`、`account`、`verification`。这些表满足 Better Auth 核心规范，并在我们项目目录的 `apps/server/server/db/schemas/auth-schema.ts` 中声明。
 
-**集成方式**：
+### 核心用户表接口
 
-1. Better Auth CLI 生成 `auth-schema.ts`（包含 user, session, account, verification 等表）
-2. 我们的业务表通过外键引用 `user.id`
-3. Drizzle 自动推导类型，无需手动维护
+对于我们的业务数据，主要关联的是 Better Auth 的 `user` 表：
 
-**参考文档**：[Better Auth Schema](https://www.better-auth.com/docs/concepts/database)
+- `user.id` (`text`, Primary Key) — 用户唯一标识符。
+- `user.email` (`text`, Unique) — 邮箱。
 
-**业务表依赖**：
-
-- 所有需要关联用户的业务表使用 `text` 类型外键引用 `user.id`
-- 删除策略根据业务需求选择 `CASCADE` 或 `SET NULL`
+---
 
 ## 业务表（8 张）
 
-### servers
+### 1. servers (服务器/工作区)
 
-工作区（Server）是用户和 Agent 协作的顶层容器。
+服务器是系统内最顶层的逻辑隔离单元，用户和 Agent 在其内部进行协作沟通。
 
 ```sql
 CREATE TABLE servers (
@@ -46,20 +42,16 @@ CREATE TABLE servers (
 CREATE INDEX idx_servers_slug ON servers(slug);
 ```
 
-**字段说明**：
+**核心说明**：
 
-- `slug` — URL 段，全局唯一（如 `"default"`）
-- `name` — 展示名（如 `"Default Server"`）
-- `isDefault` — MVP 内置的哨兵 server（系统启动时自动创建）
+- `slug` — URL 部分，系统全局唯一（只允许小写字母、数字、连字符）。
+- `isDefault` — 标志是否是 MVP 环境下的内置哨兵服务器（自动创建）。
 
-**不变量**：
+---
 
-- 系统中有且仅有一个 `isDefault = true` 的 server
-- `slug` 只能包含小写字母、数字、连字符
+### 2. serverMembers (服务器成员)
 
-### serverMembers
-
-用户加入的 server 列表。
+这是一个连接表，代表用户加入了哪些服务器。由于 MVP 暂无复杂角色，所有成员权限等同。
 
 ```sql
 CREATE TABLE "serverMembers" (
@@ -72,14 +64,11 @@ CREATE TABLE "serverMembers" (
 CREATE INDEX idx_serverMembers_userId ON "serverMembers"("userId");
 ```
 
-**字段说明**：
+---
 
-- 复合主键：一个用户在同一 server 中只能有一条记录
-- MVP 不做角色管理，所有成员权限相同
+### 3. channels (频道)
 
-### channels
-
-频道是消息的容器。
+频道属于服务器。是系统消息沟通的主入口。每一个服务器在初始化时，会自动随带创建一个名为 `"general"` 的默认频道。
 
 ```sql
 CREATE TABLE channels (
@@ -93,63 +82,15 @@ CREATE TABLE channels (
 CREATE INDEX idx_channels_serverId ON channels("serverId");
 ```
 
-**字段说明**：
+**唯一性约束**：
 
-- `name` — 频道名（如 `"general"`），server 内唯一
-- MVP 内置 `"general"` 频道，系统自动创建
+- 同一个服务器下频道名 `name` 不能重复 (`serverId`, `name` 复合唯一约束)。
 
-**不变量**：
+---
 
-- 每个 server 至少有一个 `name = "general"` 的频道
-- `name` 只能包含小写字母、数字、连字符
+### 4. machines (计算机)
 
-### messages
-
-消息是人类和 Agent 交互的基本单位。
-
-```sql
-CREATE TABLE messages (
-  id               text PRIMARY KEY,
-  "channelId"      text NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
-  "senderId"       text NOT NULL,
-  "senderType"     text NOT NULL CHECK ("senderType" IN ('human', 'agent', 'system')),
-  content          text NOT NULL,
-  seq              bigserial NOT NULL,
-  mentions         text[] NOT NULL DEFAULT '{}',
-  "replyTo"        text REFERENCES messages(id) ON DELETE SET NULL,
-  "triggerChainId" text,
-  "chainDepth"     integer NOT NULL DEFAULT 0,
-  "createdAt"      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE ("channelId", seq)
-);
-
-CREATE INDEX idx_messages_channelId_seq ON messages("channelId", seq DESC);
-CREATE INDEX idx_messages_senderId ON messages("senderId");
-CREATE INDEX idx_messages_replyTo ON messages("replyTo");
-CREATE INDEX idx_messages_triggerChainId ON messages("triggerChainId");
-```
-
-**字段说明**：
-
-- `senderId` — 发送者 ID（`user.id` 或 `agents.id` 或 `"system"`）
-- `senderType` — 发送者类型（`"human"` | `"agent"` | `"system"`）
-- `seq` — 频道内严格递增的序列号（用于增量拉取和排序）
-- `mentions` — 解析出的 @mention 列表（仅包含 agent name，服务端写入时解析）
-- `replyTo` — 指向触发本次响应的消息（用于幂等处理）
-- `triggerChainId` — 对话链 ID（人类消息的 `id`，agent 响应继承触发消息的 `triggerChainId`）
-- `chainDepth` — 对话链深度（人类消息为 0，agent 响应为 `parent.chainDepth + 1`）
-
-**不变量**：
-
-- `seq` 在同一 `channelId` 内严格递增（由 `bigserial` 保证）
-- `chainDepth >= 4` 的消息不会触发新的 Agent 响应（反循环机制）
-- `senderType = "human"` 时 `senderId` 必须存在于 `user` 表
-- `senderType = "agent"` 时 `senderId` 必须存在于 `agents` 表
-- `mentions` 数组中的值必须是有效的 agent name
-
-### machines
-
-电脑（Machine）代表用户的本地机器，通过 Machine Key 认证。
+计算机代表了用户的本地物理设备（例如用户的 Macbook），属于某个特定的 `serverId` 并归属于特定的 `userId`。只有成功注册并拥有有效 Machine Key 的计算机，其本地的 Daemon Bridge 才能与服务器进行双向通信。
 
 ```sql
 CREATE TABLE machines (
@@ -169,23 +110,16 @@ CREATE INDEX idx_machines_serverId ON machines("serverId");
 CREATE INDEX idx_machines_keyHash ON machines("keyHash");
 ```
 
-**字段说明**：
-
-- `label` — 用户起的机器名（如 `"MacBook Pro"`）
-- `keyHash` — Machine Key 的 SHA-256 哈希（用于验证）
-- `keyPrefix` — Machine Key 的前 12 位（如 `"sk_machine_a1b2"`，用于 UI 展示）
-- `lastSeenAt` — Bridge 最后一次心跳时间
-- `revokedAt` — 吊销时间（软删除，非 null 表示已吊销）
-
 **不变量**：
 
-- Machine Key 格式：`sk_machine_<64 位十六进制>`
-- `keyHash` 全局唯一
-- 已吊销的 machine（`revokedAt IS NOT NULL`）不能用于认证
+- `keyHash` 是 Machine Key 的 SHA-256 哈希值，确保机器的密钥验证安全。
+- 若 `revokedAt` 非空则表示机器已被注销/吊销，Daemon 将无法通过其鉴权。
 
-### agents
+---
 
-Agent 是运行在用户本地机器上的 AI 实例。
+### 5. agents (代理)
+
+Agent 是运行在指定计算机 (`machines`) 上的 AI 运行时实例。Agent 属于某一指定的服务器 (`serverId`)。
 
 ```sql
 CREATE TABLE agents (
@@ -203,102 +137,93 @@ CREATE INDEX idx_agents_serverId ON agents("serverId");
 CREATE INDEX idx_agents_machineId ON agents("machineId");
 ```
 
-**字段说明**：
-
-- `name` — @mention 用的 slug（如 `"coder"`），server 内唯一
-- `displayName` — 展示名（如 `"Coder Agent"`）
-- `runtime` — AI CLI 类型（`"claude"` | `"opencode"`）
-
 **不变量**：
 
-- `name` 只能包含小写字母、数字、下划线
-- `name` 在同一 server 内唯一
-- Agent 只能绑定到未吊销的 machine
+- `name` 是在群聊中被 `@mention` 提及的唯一昵称标识，在对应的服务器内必须唯一 (`serverId`, `name` 复合唯一约束)。
+- Agent 必须宿主在健康且未被吊销的 `machineId` 下。
 
-## 索引策略
+---
 
-### 高频查询索引
+### 6. messages (消息与话题)
+
+消息是人类用户与本地 Agent 相互沟通交流的媒介。**消息必须隶属于某个频道，同时也可以是某个子话题（Thread）的回复。**
+
+通过自引用列 `parentId` 来实现话题模式：
 
 ```sql
--- 拉取增量消息（Web UI / Bridge）
+CREATE TABLE messages (
+  id               text PRIMARY KEY,
+  "channelId"      text NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  "parentId"       text REFERENCES messages(id) ON DELETE CASCADE,
+  "senderId"       text NOT NULL,
+  "senderType"     text NOT NULL CHECK ("senderType" IN ('human', 'agent', 'system')),
+  content          text NOT NULL,
+  seq              bigserial NOT NULL,
+  mentions         text[] NOT NULL DEFAULT '{}',
+  "replyTo"        text REFERENCES messages(id) ON DELETE SET NULL,
+  "triggerChainId" text,
+  "chainDepth"     integer NOT NULL DEFAULT 0,
+  "createdAt"      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE ("channelId", seq)
+);
+
 CREATE INDEX idx_messages_channelId_seq ON messages("channelId", seq DESC);
-
--- 查找待处理的 @mention（Bridge）
-CREATE INDEX idx_messages_mentions ON messages USING GIN(mentions);
-
--- 反循环查询
-CREATE INDEX idx_messages_triggerChainId ON messages("triggerChainId");
-
--- Machine Key 验证
-CREATE INDEX idx_machines_keyHash ON machines("keyHash");
+CREATE INDEX idx_messages_parentId ON messages("parentId");
+CREATE INDEX idx_messages_senderId ON messages("senderId");
+CREATE INDEX idx_messages_replyTo ON messages("replyTo");
 ```
 
-### 外键索引
+#### 话题设计细节与业务规约
 
-所有外键列自动创建索引（Drizzle 默认行为）。
+1. **根通道消息**：
+   - 正常在频道中首发、未在任何小话题里的普通消息，其 `parentId` 为 `NULL`。
+2. **话题内回复**：
+   - 当用户或 Agent 对某一特定消息点击“开启话题/回复讨论”时，该回复消息的 `parentId` 需要填入那条被回复消息的 `id`。
+   - 子话题内的消息虽然代表一个独立的垂直会话树，但它们依旧共享同一个 `channelId` 便于归档和权限确认。
+3. **删除级联**：
+   - 当一条根消息被删除时，在 `parentId` 上建立的 `ON DELETE CASCADE` 会自动将所有挂载在此话题下的分支回复一并级联删除。
+4. **对话深度控制与反循环**：
+   - `triggerChainId` 关联触发这一对话链的最初始的人类消息 `id`。
+   - `chainDepth` 依然代表链路深度。无论消息在主频道轴还是在子话题中，一旦由 Agent 触发响应且深度达到 4（`chainDepth >= 4`），系统停止触发本地 daemon 调用，以防多个 Agent 在话题里陷入无限递归循环。
 
-## 迁移策略
+---
 
-### 初始化
+## 索引与高频查询优化
+
+1. **拉取频道普通消息流**：
+
+   ```sql
+   -- 查询主频道首屏消息（排除子话题）
+   SELECT * FROM messages
+   WHERE "channelId" = ? AND "parentId" IS NULL
+   ORDER BY seq DESC;
+   ```
+
+   **索引**：`idx_messages_channelId_seq` 复合索引加速拉取。
+
+2. **拉取某条消息衍生的子话题列表**：
+   ```sql
+   SELECT * FROM messages
+   WHERE "parentId" = ?
+   ORDER BY "createdAt" ASC;
+   ```
+   **索引**：在自引用外键上建立了 `idx_messages_parentId` 索引，保障高频检索速度。
+
+## 数据初始化规范 (Seeding)
+
+系统进行初始化（Dev 开启或部署阶段）时，必须执行预设：
+
+1. 建立默认服务器（`slug = "default"`，`isDefault = true`）。
+2. 在该服务器下建立名称为 `"general"` 的公共频道。
+
+## 开发与迁移方式
+
+在 `apps/server` 下定义完 drizzle schema 后，使用包中的 Vite Plus 命令来完成生成与迁移：
 
 ```bash
-# 生成迁移文件
+# 生成 drizzle sql 迁移文件
 vp run db:generate
-# 或
-bun run db:generate
 
-# 应用迁移
+# 将迁移文件同步到数据库
 vp run db:migrate
-# 或
-bun run db:migrate
-
-# 或直接推送到开发数据库（跳过迁移文件）
-vp run db:push
-# 或
-bun run db:push
 ```
-
-**说明**：本项目使用 Vite Plus (`vp`) 作为包管理器，优先使用 `vp run <script>`，也可使用 `bun run <script>`。
-
-### 数据初始化
-
-系统启动时自动执行：
-
-1. 创建 default server（`slug = "default"`, `isDefault = true`）
-2. 创建 general channel（`name = "general"`）
-
-```bash
-vp run db:seed
-# 或
-bun run db:seed
-```
-
-实现位置：`apps/web/src/db/seed.ts`
-
-## 类型安全
-
-Drizzle 自动从 schema 生成 TypeScript 类型：
-
-```typescript
-import { type InferSelectModel, type InferInsertModel } from "drizzle-orm";
-import * as schema from "./schema";
-
-// 查询结果类型
-export type User = InferSelectModel<typeof schema.user>;
-export type Message = InferSelectModel<typeof schema.messages>;
-
-// 插入数据类型
-export type NewMessage = InferInsertModel<typeof schema.messages>;
-```
-
-## 环境变量
-
-```bash
-# .env
-DATABASE_URL=postgresql://user:password@localhost:5432/openslock
-```
-
-## 变更记录
-
-- 2026-05-14：更新 Better Auth 表说明，改为引用 Better Auth CLI 生成的 schema
-- 2026-05-13：初稿，基于 MVP spec 定义完整 schema

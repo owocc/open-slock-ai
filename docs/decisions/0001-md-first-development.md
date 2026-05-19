@@ -5,9 +5,9 @@
 
 ## 背景
 
-上一代 OpenSlock 实现遗留问题（见 `docs/architecture.md` "当前实现的问题"章节）的根本原因之一是：**规范散落在代码里**。TanStack Start API 的 breaking change 无处对齐，Agent 24h 自动开发缺乏契约门控，schema 迁移状态含糊。
+作为对标 slock.ai 且支持高度定制与扩展的开源 AI Agent 协同平台，OpenSlock 面临着极高的模块解耦度和架构一致性要求。如果**规范散落在代码里**，会导致各模块在开源开发者与 Agent 协作开发中缺乏明确的协议规范（如 API breaking changes、Agent 自动开发的契约门控以及 schema 迁移路径冲突等）。
 
-重建时需要一个更强的约束：让规范成为可独立审阅、可机器验证的制品。
+我们需要一个顶层约束：让设计规范（Specification）独立于具体实现，成为可审阅、可由机器验证的制品。
 
 ## 决策
 

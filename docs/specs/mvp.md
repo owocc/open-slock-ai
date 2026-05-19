@@ -2,7 +2,7 @@
 
 ## 概述
 
-证明 OpenSlock 核心链路：**人类在远端 Web UI 发消息 → 用户本地 Bridge 经 ACP 调起本地 AI CLI → 响应回到频道 → 多 Agent 可互相 @mention 接力**。
+证明 OpenSlock 核心链路：**人类在远端 Web UI 发消息 → 用户本地 Bridge 直接调起本地 AI CLI 并以流式 JSON 交互 → 响应回到频道 → 多 Agent 可互相 @mention 接力**。
 
 MVP 不是产品，是链路证明。范围边界见 [ADR-0002](../decisions/0002-mvp-scope-and-deployment.md)。
 
@@ -13,8 +13,8 @@ MVP 不是产品，是链路证明。范围边界见 [ADR-0002](../decisions/000
 | Web UI                       | Vercel                    | 人类入口（登录、选频道、发消息、看消息、管理电脑/Agent） |
 | Server API                   | Vercel（Astro endpoints） | 鉴权、读写 DB、广播通知                                  |
 | Postgres + Realtime          | Supabase                  | 持久化、Broadcast 广播                                   |
-| Bridge（`@slock-ai/daemon`） | 用户本地                  | 扫描本地 CLI、轮询待处理消息、ACP 调起子进程、回写响应   |
-| AI CLI（claude / opencode）  | 用户本地                  | ACP server，由 Bridge 通过 stdio 驱动                    |
+| Bridge（`@slock-ai/daemon`） | 用户本地                  | 扫描本地 CLI、轮询待处理消息、流式调起子进程、回写响应   |
+| AI CLI（claude / opencode）  | 用户本地                  | 供 Bridge 调用的 AI 引擎进程，通过 stdin/stdout 流式交互 |
 
 ## 数据模型
 
@@ -163,12 +163,12 @@ npx @slock-ai/daemon --server-url <url> --api-key <key>
 1. 按消息顺序串行处理（同一 Agent 不并发处理多条）。
 2. 对每条消息：
    - 定位 @mention 命中的本机 Agent。
-   - 启动对应 runtime 的 ACP server（首个命中的 Agent）。
+   - 启动对应 runtime 的 CLI 进程（首个命中的 Agent）。
    - 构建 prompt：`{ recentMessages: 最近 N 条 channel 消息, currentMessage }`。MVP 的 N = 20。
-   - 通过 ACP `session/new` + `session/prompt` 发送。
-   - 累积 ACP 返回的 assistant 消息段，session 结束后拼成一条完整消息。
+   - 携带 `--session-id=<channelId> --output-format=stream-json` 作为参数流式执行。
+   - 解析并累积 CLI stream 吐出的 NDJSON 文本片段，session 结束后拼成一条完整消息。
    - `POST /api/channels/:id/messages` 以 Agent 身份发送。
-3. 处理完毕关闭子进程（MVP 每次新建 session，见 ADR-0003 "需要注意"）。
+3. 处理完毕关闭子进程（MVP 每次执行完成即关闭进程，状态由底层 CLI 通过 session-id 与 Git 分支记录，见 ADR-0006）。
 
 ### 反循环
 
@@ -179,7 +179,7 @@ npx @slock-ai/daemon --server-url <url> --api-key <key>
 
 ### 错误恢复
 
-- ACP 进程崩溃：记录 system 消息 `⚠️ Agent <name> runtime crashed`，不重试。
+- CLI 进程崩溃：记录 system 消息 `⚠️ Agent <name> runtime crashed`，不重试。
 - HTTP 5xx：指数退避（1s、2s、4s、8s 封顶），最多 4 次。
 - 网络分区恢复：依赖心跳和广播订阅重连，Supabase Realtime SDK 有自动重连。
 
@@ -205,10 +205,10 @@ T3  用户在 Web UI 点 "创建 Agent" → 选电脑 → 选 runtime=claude →
 T4  用户在 #general 发 "@coder 写个 hello world"
     → Server 插入 messages（chainDepth=0），广播 message.new
 T5  Bridge 收到广播 → 拉 pending → 命中 coder
-    → ACP 调 claude → 响应 "Hello World! @reviewer 帮看看"
+    → 子进程调 claude 并解析 JSON 流 → 响应 "Hello World! @reviewer 帮看看"
     → Bridge POST 响应（chainDepth=1, replyTo=用户消息）
 T6  Server 广播新消息 → Bridge 再拉 pending → 命中 reviewer
-    → ACP 调 opencode → 响应 "看起来不错"（chainDepth=2）
+    → 子进程调 opencode 并解析 JSON 流 → 响应 "看起来不错"（chainDepth=2）
 T7  用户在 Web UI 收到两条响应
 ```
 

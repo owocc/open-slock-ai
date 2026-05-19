@@ -19,9 +19,10 @@
 - [decisions/](decisions/) — 架构决策记录（ADR）
   - [0001](decisions/0001-md-first-development.md) md-first 开发模式
   - [0002](decisions/0002-mvp-scope-and-deployment.md) MVP 范围与部署拓扑
-  - [0003](decisions/0003-acp-for-agent-runtime.md) ACP 作为 Agent 运行时协议
+  - [0003](decisions/0003-acp-for-agent-runtime.md) ACP 作为 Agent 运行时协议 (superseded by 0006)
   - [0004](decisions/0004-realtime-via-supabase-broadcast.md) Realtime 用 Supabase Broadcast 公开通道
   - [0005](decisions/0005-web-ui-stack.md) Web UI 技术栈：Astro + React islands + shadcn v4 + Base UI
+  - [0006](decisions/0006-daemon-cli-stream.md) Daemon 通过 CLI 流式 JSON 驱动 Agent
 
 ## 规则速查
 

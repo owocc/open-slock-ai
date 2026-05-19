@@ -1,6 +1,6 @@
 # 0003. ACP 作为 Agent 运行时协议
 
-- 状态：accepted
+- 状态：superseded by 0006-daemon-cli-stream
 - 日期：2026-05-12
 
 ## 背景
