@@ -13,7 +13,12 @@
     "dev": "vp run website#dev",
     "prepare": "vp config"
   },
+  "dependencies": {
+    "@hey-api/client-fetch": "^0.13.1"
+  },
   "devDependencies": {
+    "@hey-api/openapi-ts": "^0.97.2",
+    "openapi": "workspace:*",
     "vite-plus": "^0.1.21"
   },
   "overrides": {
@@ -29,6 +34,7 @@
     "vitest": "npm:@voidzero-dev/vite-plus-test@latest",
     "vite-plus": "latest",
     "typescript": "6.0.2",
-    "better-auth": "1.5.3"
+    "better-auth": "1.5.3",
+    "h3": "^1.15.0"
   }
 }

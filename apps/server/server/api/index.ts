@@ -1,5 +1,3 @@
-import { defineHandler } from "nitro";
-
-export default defineHandler((event) => {
+export async function handleIndex(_req: Request) {
   return { message: "Hello from API!" };
-});
+}
