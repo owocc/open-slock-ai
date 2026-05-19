@@ -144,6 +144,8 @@ Tailwind v4 的 `@theme` 块中定义，映射到 CSS custom properties。以下
 - **Hairline 分隔**：列表、面板边界默认 1px hairline，不加阴影。
 - **Sidebar 唯一深色**：左侧导航是系统外壳，用 `surface-dark`；其余一律浅色 canvas。
 - **CTA 克制**：同一视图内只有 1 个 primary ink pill，其他用 outline / ghost。
+- **双栏高雅卡片式布局**：登录页和注册页采用卡片布局（`bg-surface border-hairline shadow-soft`），配合去饱和度高反差的抽象大理石艺术背景图像，将极简排版艺术、服务条款细微标识与清晰的输入域结合。
+- **消息密度高合并渲染**：在聊天消息流中，若同一发送者在 2 分钟内连续发送消息，将进行合并展示，不重复渲染头像和账户名，仅在悬停该行消息时在左侧栏边缘透出极小的时间戳标记（`text-[10px] text-muted-soft select-none`），实现信息密度最大化。
 
 ## 不变量
 
