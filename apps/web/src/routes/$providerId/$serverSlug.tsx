@@ -7,7 +7,7 @@ import {
   postApiServersByServerIdChannels,
 } from "openapi";
 import { authClient } from "../../lib/auth-client";
-import { Plus, Power, Users, Hash, Settings, User } from "lucide-react";
+import { Plus, Power, Users, Hash, Settings, User, Server } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import {
@@ -19,6 +19,16 @@ import {
   DialogTitle,
 } from "#/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from "#/components/ui/dropdown-menu";
 import {
   SidebarProvider,
   Sidebar,
@@ -299,7 +309,7 @@ function ServerLayout() {
               <PopoverTrigger asChild>
                 <button
                   className="flex h-14 items-center justify-between px-4 w-full hover:bg-surface-strong/30 transition-colors cursor-pointer group group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                  title="切换提供商与工作空间"
+                  title="切换工作空间"
                 >
                   <div className="flex items-center gap-2 overflow-hidden group-data-[collapsible=icon]:gap-0">
                     <div className="h-8 w-8 rounded-lg bg-ink text-surface flex items-center justify-center font-bold text-xs shrink-0 shadow-soft group-data-[collapsible=icon]:mx-auto">
@@ -316,97 +326,63 @@ function ServerLayout() {
                 side="right"
                 align="start"
                 sideOffset={4}
-                className="w-[480px] p-4 bg-surface text-ink border border-hairline shadow-lg z-[100]"
+                className="w-[320px] p-4 bg-surface text-ink border border-hairline shadow-lg z-[100]"
               >
                 <div className="space-y-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-ink">切换协作空间</h2>
+                    <h2 className="text-sm font-semibold text-ink">切换工作空间</h2>
                     <p className="text-xs text-muted-soft">
-                      在下方选择服务提供商，或切换当前提供商下的工作空间与团队。
+                      在当前服务提供商下切换不同的工作空间。
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-1 divide-x divide-hairline">
-                    {/* 左侧：选择服务提供商 */}
-                    <div className="space-y-3 pr-2">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
                       <h3 className="text-[10px] font-semibold text-muted uppercase tracking-wider">
-                        服务提供商
+                        工作空间
                       </h3>
-                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
-                        {providers.map((p) => {
-                          const isActive = p.id === activeEp.id;
+                      <button
+                        onClick={() => setShowCreateServerModal(true)}
+                        className="text-muted hover:text-ink transition-colors cursor-pointer"
+                        title="创建工作空间"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                      {servers.length === 0 ? (
+                        <button
+                          onClick={() => setShowCreateServerModal(true)}
+                          className="w-full text-xs text-muted py-8 text-center bg-canvas/30 rounded border border-dashed border-hairline hover:bg-surface-strong/30 hover:text-ink transition-all cursor-pointer block"
+                        >
+                          暂无工作空间，点击创建
+                        </button>
+                      ) : (
+                        servers.map((s) => {
+                          const isActive = s.id === activeServer.id;
                           return (
                             <div
-                              key={p.id}
-                              onClick={() => handleSwitchProvider(p)}
+                              key={s.id}
+                              onClick={() => handleSwitchServer(s.slug)}
                               className={`p-2 rounded-md border text-left cursor-pointer transition-all flex items-center justify-between group ${
                                 isActive
-                                  ? "border-emerald-600 bg-emerald-50/10 text-emerald-600 font-medium"
+                                  ? "border-ink-soft bg-surface-strong/60 font-semibold"
                                   : "border-hairline hover:bg-surface-strong/30"
                               }`}
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-semibold truncate">{p.name}</div>
-                                <div className="text-[9px] text-muted truncate">{p.baseUrl}</div>
+                                <div className="text-xs font-semibold text-ink truncate">
+                                  {s.name}
+                                </div>
+                                <div className="text-[9px] text-muted truncate">/{s.slug}</div>
                               </div>
                               {isActive && (
-                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0 ml-1.5" />
+                                <div className="h-1.5 w-1.5 rounded-full bg-ink shrink-0 ml-1.5" />
                               )}
                             </div>
                           );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* 右侧：选择空间服务器 */}
-                    <div className="space-y-3 pl-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-semibold text-muted uppercase tracking-wider">
-                          空间服务器
-                        </h3>
-                        <button
-                          onClick={() => setShowCreateServerModal(true)}
-                          className="text-muted hover:text-ink transition-colors cursor-pointer"
-                          title="创建空间服务器"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
-                      <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
-                        {servers.length === 0 ? (
-                          <button
-                            onClick={() => setShowCreateServerModal(true)}
-                            className="w-full text-xs text-muted py-8 text-center bg-canvas/30 rounded border border-dashed border-hairline hover:bg-surface-strong/30 hover:text-ink transition-all cursor-pointer block"
-                          >
-                            暂无空间服务器，点击创建
-                          </button>
-                        ) : (
-                          servers.map((s) => {
-                            const isActive = s.id === activeServer.id;
-                            return (
-                              <div
-                                key={s.id}
-                                onClick={() => handleSwitchServer(s.slug)}
-                                className={`p-2 rounded-md border text-left cursor-pointer transition-all flex items-center justify-between group ${
-                                  isActive
-                                    ? "border-ink-soft bg-surface-strong/60 font-semibold"
-                                    : "border-hairline hover:bg-surface-strong/30"
-                                }`}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs font-semibold text-ink truncate">
-                                    {s.name}
-                                  </div>
-                                  <div className="text-[9px] text-muted truncate">/{s.slug}</div>
-                                </div>
-                                {isActive && (
-                                  <div className="h-1.5 w-1.5 rounded-full bg-ink shrink-0 ml-1.5" />
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                        })
+                      )}
                     </div>
                   </div>
                 </div>
@@ -465,8 +441,8 @@ function ServerLayout() {
           </SidebarContent>
 
           <SidebarFooter className="p-2 border-t border-hairline group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:py-4">
-            <Popover>
-              <PopoverTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 px-2 py-1.5 w-full hover:bg-surface-strong/30 transition-colors rounded-md cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
                   <div className="h-8 w-8 rounded-full bg-surface border border-hairline flex items-center justify-center text-xs font-bold text-muted shrink-0 shadow-sm">
                     {sessionData?.user?.name?.substring(0, 1).toUpperCase()}
@@ -480,49 +456,81 @@ function ServerLayout() {
                     </span>
                   </div>
                 </button>
-              </PopoverTrigger>
-              <PopoverContent
-                side="right"
-                align="end"
-                sideOffset={12}
-                className="w-56 p-1.5 bg-surface text-ink border border-hairline shadow-lg z-[100]"
-              >
-                <div className="space-y-1">
-                  <div className="px-2 py-1.5 mb-1 border-b border-hairline">
-                    <p className="text-xs font-bold text-ink truncate">{sessionData?.user?.name}</p>
-                    <p className="text-[10px] text-muted truncate">{sessionData?.user?.email}</p>
-                  </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" sideOffset={12} className="w-64">
+                <div className="px-2 py-1.5 border-b border-hairline mb-1">
+                  <p className="text-xs font-bold text-ink truncate">{sessionData?.user?.name}</p>
+                  <p className="text-[10px] text-muted truncate">{sessionData?.user?.email}</p>
+                </div>
 
+                <DropdownMenuItem asChild>
                   <Link
                     to="/$providerId/$serverSlug/settings"
                     params={{ providerId, serverSlug }}
-                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-soft hover:bg-surface-strong/50 rounded-md transition-colors"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
                     <Settings className="h-3.5 w-3.5 text-muted" />
                     <span>工作空间设置</span>
                   </Link>
+                </DropdownMenuItem>
 
+                <DropdownMenuItem asChild>
                   <Link
                     to="/$providerId/account"
                     params={{ providerId }}
-                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-ink-soft hover:bg-surface-strong/50 rounded-md transition-colors"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
                     <User className="h-3.5 w-3.5 text-muted" />
                     <span>个人账户中心</span>
                   </Link>
+                </DropdownMenuItem>
 
-                  <div className="h-px bg-hairline my-1" />
+                <DropdownMenuSeparator />
 
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-2 py-1.5 text-xs text-error hover:bg-error/5 w-full text-left rounded-md transition-colors cursor-pointer"
-                  >
-                    <Power className="h-3.5 w-3.5" />
-                    <span>退出登录</span>
-                  </button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer">
+                    <Server className="h-3.5 w-3.5 text-muted" />
+                    <span className="flex-1 text-left text-xs">{activeEp.name}</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent sideOffset={8} className="min-w-[180px]">
+                    {providers.map((p) => {
+                      const isActive = p.id === activeEp.id;
+                      return (
+                        <DropdownMenuItem
+                          key={p.id}
+                          onSelect={() => handleSwitchProvider(p)}
+                          className={`cursor-pointer ${isActive ? "font-semibold" : ""}`}
+                        >
+                          <span className="truncate flex-1 text-xs">{p.name}</span>
+                          {isActive && (
+                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          )}
+                        </DropdownMenuItem>
+                      );
+                    })}
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem asChild>
+                      <Link to="/" className="flex items-center gap-2 cursor-pointer text-muted">
+                        <Settings className="h-3 w-3" />
+                        <span className="text-xs">管理提供商</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  onSelect={handleLogout}
+                  className="text-error hover:bg-error/5 cursor-pointer"
+                >
+                  <Power className="h-3.5 w-3.5" />
+                  <span className="text-xs">退出登录</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
