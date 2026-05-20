@@ -1,8 +1,8 @@
-import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { getEndpoints, mapRouteIdToEndpointId } from "../lib/server-config";
 
 export const Route = createFileRoute("/$providerId")({
-  beforeLoad: ({ params, location }) => {
+  beforeLoad: async ({ params, location }) => {
     const providerId = params.providerId;
     const mappedId = mapRouteIdToEndpointId(providerId);
     const endpoints = getEndpoints();
@@ -24,10 +24,8 @@ export const Route = createFileRoute("/$providerId")({
 
       const normalizedPath = location.pathname.replace(/\/$/, "");
       if (normalizedPath === `/${providerId}`) {
-        throw redirect({
-          to: "/$providerId/login",
-          params: { providerId },
-        });
+        // 让 /$providerId/index.tsx 处理逻辑
+        return;
       }
     } else {
       // 找不到匹配的提供商，重定向到主页选择器

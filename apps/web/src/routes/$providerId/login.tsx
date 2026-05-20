@@ -1,11 +1,38 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "../../lib/auth-client";
+import { getApiServers } from "openapi";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { ServerSelector } from "#/components/server-selector";
 
 export const Route = createFileRoute("/$providerId/login")({
+  beforeLoad: async ({ params }) => {
+    const { providerId } = params;
+    try {
+      const { data: session } = await authClient.getSession();
+      if (session) {
+        const servers = await getApiServers();
+        if (servers && Array.isArray(servers) && servers.length > 0) {
+          const firstServer = (servers as any).find((s: any) => s.isDefault) || servers[0];
+          throw redirect({
+            to: "/$providerId/$serverSlug",
+            params: { providerId, serverSlug: firstServer.slug },
+          });
+        } else {
+          throw redirect({
+            to: "/$providerId",
+            params: { providerId },
+          });
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && (err as any).status === 307) {
+        throw err;
+      }
+      // 忽略检查错误，允许留在登录页
+    }
+  },
   component: LoginComponent,
 });
 
@@ -29,7 +56,34 @@ function LoginComponent() {
       if (res.error) {
         setError(res.error.message || "登录失败，请检查账号密码");
       } else {
-        void navigate({ to: "/$providerId/dashboard", params: { providerId } });
+        // 登录成功后，尝试获取服务器列表并直接跳转到第一个服务器
+        try {
+          const servers = await getApiServers();
+          let list: any[] = [];
+          if (Array.isArray(servers)) {
+            list = servers;
+          } else if (
+            servers &&
+            typeof servers === "object" &&
+            "data" in servers &&
+            Array.isArray((servers as any).data)
+          ) {
+            list = (servers as any).data;
+          }
+
+          if (list.length > 0) {
+            const firstServer = list.find((s: any) => s.isDefault) || list[0];
+            void navigate({
+              to: "/$providerId/$serverSlug",
+              params: { providerId, serverSlug: firstServer.slug },
+            });
+          } else {
+            void navigate({ to: "/$providerId", params: { providerId } });
+          }
+        } catch {
+          // 如果获取服务器列表失败，退回
+          void navigate({ to: "/$providerId", params: { providerId } });
+        }
       }
     } catch (err: any) {
       setError(err?.message || "登录时发生错误");

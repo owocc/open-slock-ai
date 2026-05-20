@@ -31,7 +31,7 @@ function RegisterComponent() {
       if (res.error) {
         setError(res.error.message || "注册失败");
       } else {
-        void navigate({ to: "/$providerId/dashboard", params: { providerId } });
+        void navigate({ to: "/$providerId", params: { providerId } });
       }
     } catch (err: any) {
       setError(err?.message || "注册时发生错误");

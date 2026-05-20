@@ -67,7 +67,7 @@ export async function serializeRequest(
 }
 
 // 反序列化 Response 逻辑
-export function deserializeResponse(res: SerializableResponse): Response {
+export function deserializeResponse(res: SerializableResponse, providerId?: string): Response {
   let responseBody: BodyInit | null = null;
   if (res.body !== null) {
     if (res.bodyType === "base64") {
@@ -87,6 +87,19 @@ export function deserializeResponse(res: SerializableResponse): Response {
     responseHeaders.set(key, val);
   });
 
+  // 如果检测到设置 Token 的 Header，则存入 localStorage
+  // 如果 Header 存在但为空，则表示清除 Token
+  if (providerId && typeof window !== "undefined") {
+    const setToken = res.headers["x-os-set-token"];
+    if (setToken !== undefined) {
+      if (setToken) {
+        localStorage.setItem(`os_token_${providerId}`, setToken);
+      } else {
+        localStorage.removeItem(`os_token_${providerId}`);
+      }
+    }
+  }
+
   return new Response(responseBody, {
     status: res.status,
     statusText: res.statusText,
@@ -99,13 +112,24 @@ export const proxyRequestServerFn = createServerFn({ method: "POST" })
   .inputValidator((data: SerializableRequest) => data)
   .handler(async ({ data }: { data: SerializableRequest }) => {
     const startTime = Date.now();
-    const { getRequestHeader, setResponseHeader } = await import("@tanstack/react-start/server");
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
     const headers = new Headers();
     Object.entries(data.headers).forEach(([k, v]) => headers.set(k, v as string));
 
     // 转发请求客户端已生成的 Cookie 与 UA，维持原有 session
-    const cookie = getRequestHeader("cookie");
+    // 同时支持从自定义 Header 中提取 Session Token 并注入到后端请求中
+    const sessionTokenHeader = headers.get("better-auth.session_token");
+    let cookie = getRequestHeader("cookie") || "";
+
+    if (sessionTokenHeader) {
+      // 同时注入到 Cookie 和 Header 以确保后端 Better Auth 能正确识别
+      const sessionCookie = `better-auth.session_token=${sessionTokenHeader}`;
+      cookie = cookie ? `${cookie}; ${sessionCookie}` : sessionCookie;
+      headers.set("better-auth.session_token", sessionTokenHeader);
+    }
+
     if (cookie) headers.set("cookie", cookie);
+
     const ua = getRequestHeader("user-agent");
     if (ua) headers.set("user-agent", ua);
 
@@ -173,19 +197,28 @@ export const proxyRequestServerFn = createServerFn({ method: "POST" })
       body: bodyInit,
     });
 
-    // BFF 把 Core API 下发的 Set-Cookie 转发到最终的浏览器宿主
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((v, k) => {
+      // 避免重复设置 Set-Cookie
+      if (k !== "set-cookie") {
+        responseHeaders[k] = v;
+      }
+    });
+
+    // BFF 提取 Core API 下发的 Set-Cookie，如果是 session token，则透传给前端存储到 localStorage
     const setCookies = response.headers.getSetCookie?.() || [];
-    if (setCookies.length > 0) {
-      setResponseHeader("set-cookie", setCookies);
+    const sessionCookie = setCookies.find((c) => c.trim().startsWith("better-auth.session_token="));
+
+    if (sessionCookie) {
+      const sessionToken = sessionCookie.split(";")[0].split("=")[1] || "";
+      responseHeaders["x-os-set-token"] = sessionToken;
+      console.log(`Session Token extracted and forwarded: ${sessionToken.substring(0, 10)}...`);
     }
 
     const duration = Date.now() - startTime;
     console.log(`\n-------------- [BFF Proxy Response] --------------`);
     console.log(`Status: ${response.status} ${response.statusText}`);
     console.log(`Duration: ${duration}ms`);
-    if (setCookies.length > 0) {
-      console.log(`Set-Cookie forwarded:`, setCookies);
-    }
 
     let returnBody = "";
     let returnBodyType: "text" | "base64" | "none" = "none";
@@ -223,14 +256,6 @@ export const proxyRequestServerFn = createServerFn({ method: "POST" })
     }
     console.log(`==================================================\n`);
 
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((v, k) => {
-      // 避免重复设置 Set-Cookie
-      if (k !== "set-cookie") {
-        responseHeaders[k] = v;
-      }
-    });
-
     return {
       status: response.status,
       statusText: response.statusText,
@@ -255,10 +280,19 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     return fetch(absoluteTargetUrl, init);
   }
 
+  // 注入当前 Provider 的 Session Token
+  const providerId = activeEndpoint.id;
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem(`os_token_${providerId}`);
+    if (token) {
+      req.headers.set("better-auth.session_token", token);
+    }
+  }
+
   // 序列化后通过 BFF 代理
   const data = await serializeRequest(req, absoluteTargetUrl);
   const res = await proxyRequestServerFn({ data });
-  return deserializeResponse(res);
+  return deserializeResponse(res, providerId);
 };
 
 client.setConfig({

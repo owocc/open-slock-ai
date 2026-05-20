@@ -29,9 +29,19 @@ export const authClient = createAuthClient({
 
       // CSR 并且是 server-fn 代理转发模式
       const req = new Request(absoluteTargetUrl, init);
+
+      // 注入当前 Provider 的 Session Token
+      const providerId = activeEndpoint.id;
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem(`os_token_${providerId}`);
+        if (token) {
+          req.headers.set("better-auth.session_token", token);
+        }
+      }
+
       const data = await serializeRequest(req, absoluteTargetUrl);
       const serializedRes = await proxyRequestServerFn({ data });
-      return deserializeResponse(serializedRes);
+      return deserializeResponse(serializedRes, providerId);
     },
   },
 });

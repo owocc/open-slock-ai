@@ -8,6 +8,13 @@
       "when": 1779216169967,
       "tag": "0000_chief_starbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779230030929,
+      "tag": "0001_medical_yellow_claw",
+      "breakpoints": true
     }
   ]
 }

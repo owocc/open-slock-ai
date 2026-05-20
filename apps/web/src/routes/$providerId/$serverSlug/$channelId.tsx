@@ -6,7 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 
-export const Route = createFileRoute("/$providerId/dashboard/$serverId/$channelId")({
+export const Route = createFileRoute("/$providerId/$serverSlug/$channelId")({
   component: ChannelChatComponent,
 });
 
@@ -41,7 +41,7 @@ function ChannelChatComponent() {
     }
   };
 
-  // 轮询作为消息更新的降级与轮训方案
+  // 轮询作为消息更新的选择
   useEffect(() => {
     if (channelId) {
       setLoading(true);
@@ -101,17 +101,17 @@ function ChannelChatComponent() {
       {/* 顶部活动频道栏 */}
       <div className="flex h-14 items-center px-6 border-b border-hairline bg-surface shrink-0">
         <SidebarTrigger className="mr-3 cursor-pointer shrink-0" />
-        <span className="text-title text-ink font-semibold tracking-wide flex items-center gap-1.5">
+        <span className="text-title text-ink font-semibold tracking-wide flex items-center gap-1.5 animate-in fade-in duration-200">
           <span className="text-muted">#</span> 聊天频道
         </span>
       </div>
 
-      {/* 消息史流区域 (高密度，仅用 hairline 分界，无卡片气泡以显示大页面流式效果，但保留纯白气泡布局以作极简对比) */}
+      {/* 消息史流区域 */}
       <div className="flex-1 overflow-y-auto p-6 space-y-3 relative">
         {loading && messages.length === 0 ? (
           <div className="text-meta text-muted text-center py-10">加载历史消息中...</div>
         ) : messages.length === 0 ? (
-          <div className="text-body text-muted text-center py-10 max-w-sm mx-auto border border-dashed border-hairline-strong/60 rounded-lg p-6 bg-surface">
+          <div className="text-body text-muted text-center py-10 max-w-sm mx-auto border border-dashed border-hairline-strong/60 rounded-lg p-6 bg-surface select-none">
             这是一个新频道的起点，发送一条消息开始聊天吧！
           </div>
         ) : (
@@ -154,7 +154,7 @@ function ChannelChatComponent() {
                   </div>
                   {/* 消息内容与头 */}
                   <div className="flex-1 min-w-0 space-y-0.5">
-                    <div className="flex items-baseline space-x-2">
+                    <div className="flex items-baseline space-x-2 animate-in fade-in duration-300">
                       <span className="text-body-strong text-ink truncate">
                         {isAgent ? "Agent" : msg.senderId.substring(0, 8)}
                       </span>

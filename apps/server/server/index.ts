@@ -9,11 +9,33 @@ import { handleRegisterMachine, RegisterMachineSchema } from "./api/machines/reg
 import { handleRevokeMachine } from "./api/machines/[machineId]/revoke.post";
 import { handleGetServers } from "./api/servers/index.get";
 import { handlePostServers, CreateServerSchema } from "./api/servers/index.post";
+import { handlePutServer, UpdateServerSchema } from "./api/servers/[serverId]/index.put";
+import { handleDeleteServer } from "./api/servers/[serverId]/index.delete";
 import { handleGetChannels } from "./api/servers/[serverId]/channels/index.get";
 import {
   handlePostChannels,
   CreateChannelSchema,
 } from "./api/servers/[serverId]/channels/index.post";
+import { handlePutChannel, UpdateChannelSchema } from "./api/channels/[channelId]/index.put";
+import { handleDeleteChannel } from "./api/channels/[channelId]/index.delete";
+import {
+  handleBatchSortChannels,
+  SortChannelsSchema,
+} from "./api/servers/[serverId]/channels/sort.put";
+import {
+  handlePostChannelGroups,
+  CreateChannelGroupSchema,
+} from "./api/servers/[serverId]/channel-groups/index.post";
+import { handleGetChannelGroups } from "./api/servers/[serverId]/channel-groups/index.get";
+import {
+  handlePutChannelGroup,
+  UpdateChannelGroupSchema,
+} from "./api/channel-groups/[groupId]/index.put";
+import { handleDeleteChannelGroup } from "./api/channel-groups/[groupId]/index.delete";
+import {
+  handleBatchSortChannelGroups,
+  SortChannelGroupsSchema,
+} from "./api/servers/[serverId]/channel-groups/sort.put";
 import { handleGetAgents } from "./api/servers/[serverId]/agents/index.get";
 import { handleGetMessages } from "./api/channels/[channelId]/messages/index.get";
 import {
@@ -132,11 +154,55 @@ app.post(
   },
 );
 
+app.put(
+  "/api/servers/:serverId",
+  describeRoute({
+    summary: "更新服务器",
+    description: "更新指定服务器的信息（例如修改显示名称或Slug）",
+    responses: {
+      200: {
+        description: "服务器更新完成",
+        content: {
+          "application/json": {
+            schema: resolver(UpdateServerSchema),
+          },
+        },
+      },
+      400: { description: "输入校验未通过" },
+      403: { description: "无服务器访问权限" },
+      404: { description: "未找到服务器" },
+    },
+  }),
+  zValidator("json", UpdateServerSchema),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handlePutServer(c.req.raw, serverId, data));
+  },
+);
+
+app.delete(
+  "/api/servers/:serverId",
+  describeRoute({
+    summary: "删除服务器",
+    description: "级联物理删除特定的频道工作服务器空间",
+    responses: {
+      200: { description: "删除成功" },
+      403: { description: "无服务器访问权限" },
+      404: { description: "未找到服务器" },
+    },
+  }),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    return c.json(await handleDeleteServer(c.req.raw, serverId));
+  },
+);
+
 app.get(
   "/api/servers/:serverId/channels",
   describeRoute({
     summary: "获取频道列表",
-    description: "获取指定服务器空间内的所有文字聊天频道",
+    description: "获取指定服务器空间内的所有文字聊天频道（支持排序和归档过滤）",
     responses: {
       200: { description: "成功获取频道列表" },
     },
@@ -169,6 +235,188 @@ app.post(
     const serverId = c.req.param("serverId");
     const data = c.req.valid("json" as any);
     return c.json(await handlePostChannels(c.req.raw, serverId, data));
+  },
+);
+
+app.put(
+  "/api/channels/:channelId",
+  describeRoute({
+    summary: "更新频道",
+    description: "更新指定频道的配置、修改排序索引或切换归档（假删除）/解档状态",
+    responses: {
+      200: {
+        description: "频道更新完成",
+        content: {
+          "application/json": {
+            schema: resolver(UpdateChannelSchema),
+          },
+        },
+      },
+      400: { description: "输入校验未通过" },
+      403: { description: "无服务器访问权限" },
+      404: { description: "频点未找到" },
+    },
+  }),
+  zValidator("json", UpdateChannelSchema),
+  async (c) => {
+    const channelId = c.req.param("channelId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handlePutChannel(c.req.raw, channelId, data));
+  },
+);
+
+app.delete(
+  "/api/channels/:channelId",
+  describeRoute({
+    summary: "硬删除频道",
+    description: "物理删除特定的单条文字聊天频道及级联消息",
+    responses: {
+      200: { description: "频道删除成功" },
+      403: { description: "无服务器访问权限" },
+      404: { description: "频道未找到" },
+    },
+  }),
+  async (c) => {
+    const channelId = c.req.param("channelId");
+    return c.json(await handleDeleteChannel(c.req.raw, channelId));
+  },
+);
+
+app.put(
+  "/api/servers/:serverId/channels/sort",
+  describeRoute({
+    summary: "批量排序频道",
+    description: "对指定服务器下的多个频道进行批量排序与所属分组调整",
+    responses: {
+      200: {
+        description: "频道批量排序完成",
+        content: {
+          "application/json": {
+            schema: resolver(SortChannelsSchema),
+          },
+        },
+      },
+      400: { description: "输入校验未通过" },
+      403: { description: "无服务器访问权限" },
+    },
+  }),
+  zValidator("json", SortChannelsSchema),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handleBatchSortChannels(c.req.raw, serverId, data));
+  },
+);
+
+app.post(
+  "/api/servers/:serverId/channel-groups",
+  describeRoute({
+    summary: "创建频道分组",
+    description: "在指定服务器中创建一个新的频道分组分类",
+    responses: {
+      200: {
+        description: "频道分组创建完成",
+        content: {
+          "application/json": {
+            schema: resolver(CreateChannelGroupSchema),
+          },
+        },
+      },
+      400: { description: "输入校验未通过" },
+      403: { description: "无服务器访问权限" },
+    },
+  }),
+  zValidator("json", CreateChannelGroupSchema),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handlePostChannelGroups(c.req.raw, serverId, data));
+  },
+);
+
+app.get(
+  "/api/servers/:serverId/channel-groups",
+  describeRoute({
+    summary: "获取分组及嵌套频道列表",
+    description: "获取指定服务器空间内的所有频道分组，及其包含的活动聊天频道",
+    responses: {
+      200: { description: "成功获取频道分组列表" },
+      403: { description: "无服务器访问权限" },
+    },
+  }),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    return c.json(await handleGetChannelGroups(c.req.raw, serverId));
+  },
+);
+
+app.put(
+  "/api/channel-groups/:groupId",
+  describeRoute({
+    summary: "修改频道分组",
+    description: "更新指定频道分组的名称或排序标记权重值",
+    responses: {
+      200: {
+        description: "分组修改成功",
+        content: {
+          "application/json": {
+            schema: resolver(UpdateChannelGroupSchema),
+          },
+        },
+      },
+      400: { description: "格式校验错误" },
+      403: { description: "无权限操作" },
+      404: { description: "分组不存在" },
+    },
+  }),
+  zValidator("json", UpdateChannelGroupSchema),
+  async (c) => {
+    const groupId = c.req.param("groupId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handlePutChannelGroup(c.req.raw, groupId, data));
+  },
+);
+
+app.delete(
+  "/api/channel-groups/:groupId",
+  describeRoute({
+    summary: "硬删除频道分组",
+    description: "物理删除特定的单个分组，所拥有的频道自关联会被级联设空(null)",
+    responses: {
+      200: { description: "分组删除成功" },
+      403: { description: "无服务器访问权限" },
+      404: { description: "分组不存在" },
+    },
+  }),
+  async (c) => {
+    const groupId = c.req.param("groupId");
+    return c.json(await handleDeleteChannelGroup(c.req.raw, groupId));
+  },
+);
+
+app.put(
+  "/api/servers/:serverId/channel-groups/sort",
+  describeRoute({
+    summary: "批量排序频道分组",
+    description: "批量快速对指定服务器下的所有频道分组排序权重进行多条调整",
+    responses: {
+      200: {
+        description: "排序应用成功并存档",
+        content: {
+          "application/json": {
+            schema: resolver(SortChannelGroupsSchema),
+          },
+        },
+      },
+      400: { description: "校验失败 / 有分组非本服务器成员" },
+      403: { description: "无访问服务器权能" },
+    },
+  }),
+  zValidator("json", SortChannelGroupsSchema),
+  async (c) => {
+    const serverId = c.req.param("serverId");
+    const data = c.req.valid("json" as any);
+    return c.json(await handleBatchSortChannelGroups(c.req.raw, serverId, data));
   },
 );
 
