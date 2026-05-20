@@ -18,7 +18,8 @@ import { Route as ProviderIdAccountRouteImport } from './routes/$providerId/acco
 import { Route as ProviderIdServerSlugRouteImport } from './routes/$providerId/$serverSlug'
 import { Route as ProviderIdServerSlugIndexRouteImport } from './routes/$providerId/$serverSlug/index'
 import { Route as ProviderIdServerSlugSettingsRouteImport } from './routes/$providerId/$serverSlug/settings'
-import { Route as ProviderIdServerSlugChannelIdRouteImport } from './routes/$providerId/$serverSlug/$channelId'
+import { Route as ProviderIdServerSlugChannelIdIndexRouteImport } from './routes/$providerId/$serverSlug/$channelId/index'
+import { Route as ProviderIdServerSlugChannelIdMessageIdRouteImport } from './routes/$providerId/$serverSlug/$channelId/$messageId'
 
 const ProviderIdRoute = ProviderIdRouteImport.update({
   id: '/$providerId',
@@ -67,10 +68,16 @@ const ProviderIdServerSlugSettingsRoute =
     path: '/settings',
     getParentRoute: () => ProviderIdServerSlugRoute,
   } as any)
-const ProviderIdServerSlugChannelIdRoute =
-  ProviderIdServerSlugChannelIdRouteImport.update({
-    id: '/$channelId',
-    path: '/$channelId',
+const ProviderIdServerSlugChannelIdIndexRoute =
+  ProviderIdServerSlugChannelIdIndexRouteImport.update({
+    id: '/$channelId/',
+    path: '/$channelId/',
+    getParentRoute: () => ProviderIdServerSlugRoute,
+  } as any)
+const ProviderIdServerSlugChannelIdMessageIdRoute =
+  ProviderIdServerSlugChannelIdMessageIdRouteImport.update({
+    id: '/$channelId/$messageId',
+    path: '/$channelId/$messageId',
     getParentRoute: () => ProviderIdServerSlugRoute,
   } as any)
 
@@ -82,9 +89,10 @@ export interface FileRoutesByFullPath {
   '/$providerId/login': typeof ProviderIdLoginRoute
   '/$providerId/register': typeof ProviderIdRegisterRoute
   '/$providerId/': typeof ProviderIdIndexRoute
-  '/$providerId/$serverSlug/$channelId': typeof ProviderIdServerSlugChannelIdRoute
   '/$providerId/$serverSlug/settings': typeof ProviderIdServerSlugSettingsRoute
   '/$providerId/$serverSlug/': typeof ProviderIdServerSlugIndexRoute
+  '/$providerId/$serverSlug/$channelId/$messageId': typeof ProviderIdServerSlugChannelIdMessageIdRoute
+  '/$providerId/$serverSlug/$channelId/': typeof ProviderIdServerSlugChannelIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,9 +100,10 @@ export interface FileRoutesByTo {
   '/$providerId/login': typeof ProviderIdLoginRoute
   '/$providerId/register': typeof ProviderIdRegisterRoute
   '/$providerId': typeof ProviderIdIndexRoute
-  '/$providerId/$serverSlug/$channelId': typeof ProviderIdServerSlugChannelIdRoute
   '/$providerId/$serverSlug/settings': typeof ProviderIdServerSlugSettingsRoute
   '/$providerId/$serverSlug': typeof ProviderIdServerSlugIndexRoute
+  '/$providerId/$serverSlug/$channelId/$messageId': typeof ProviderIdServerSlugChannelIdMessageIdRoute
+  '/$providerId/$serverSlug/$channelId': typeof ProviderIdServerSlugChannelIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,9 +114,10 @@ export interface FileRoutesById {
   '/$providerId/login': typeof ProviderIdLoginRoute
   '/$providerId/register': typeof ProviderIdRegisterRoute
   '/$providerId/': typeof ProviderIdIndexRoute
-  '/$providerId/$serverSlug/$channelId': typeof ProviderIdServerSlugChannelIdRoute
   '/$providerId/$serverSlug/settings': typeof ProviderIdServerSlugSettingsRoute
   '/$providerId/$serverSlug/': typeof ProviderIdServerSlugIndexRoute
+  '/$providerId/$serverSlug/$channelId/$messageId': typeof ProviderIdServerSlugChannelIdMessageIdRoute
+  '/$providerId/$serverSlug/$channelId/': typeof ProviderIdServerSlugChannelIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,9 +129,10 @@ export interface FileRouteTypes {
     | '/$providerId/login'
     | '/$providerId/register'
     | '/$providerId/'
-    | '/$providerId/$serverSlug/$channelId'
     | '/$providerId/$serverSlug/settings'
     | '/$providerId/$serverSlug/'
+    | '/$providerId/$serverSlug/$channelId/$messageId'
+    | '/$providerId/$serverSlug/$channelId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,9 +140,10 @@ export interface FileRouteTypes {
     | '/$providerId/login'
     | '/$providerId/register'
     | '/$providerId'
-    | '/$providerId/$serverSlug/$channelId'
     | '/$providerId/$serverSlug/settings'
     | '/$providerId/$serverSlug'
+    | '/$providerId/$serverSlug/$channelId/$messageId'
+    | '/$providerId/$serverSlug/$channelId'
   id:
     | '__root__'
     | '/'
@@ -141,9 +153,10 @@ export interface FileRouteTypes {
     | '/$providerId/login'
     | '/$providerId/register'
     | '/$providerId/'
-    | '/$providerId/$serverSlug/$channelId'
     | '/$providerId/$serverSlug/settings'
     | '/$providerId/$serverSlug/'
+    | '/$providerId/$serverSlug/$channelId/$messageId'
+    | '/$providerId/$serverSlug/$channelId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,26 +229,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProviderIdServerSlugSettingsRouteImport
       parentRoute: typeof ProviderIdServerSlugRoute
     }
-    '/$providerId/$serverSlug/$channelId': {
-      id: '/$providerId/$serverSlug/$channelId'
+    '/$providerId/$serverSlug/$channelId/': {
+      id: '/$providerId/$serverSlug/$channelId/'
       path: '/$channelId'
-      fullPath: '/$providerId/$serverSlug/$channelId'
-      preLoaderRoute: typeof ProviderIdServerSlugChannelIdRouteImport
+      fullPath: '/$providerId/$serverSlug/$channelId/'
+      preLoaderRoute: typeof ProviderIdServerSlugChannelIdIndexRouteImport
+      parentRoute: typeof ProviderIdServerSlugRoute
+    }
+    '/$providerId/$serverSlug/$channelId/$messageId': {
+      id: '/$providerId/$serverSlug/$channelId/$messageId'
+      path: '/$channelId/$messageId'
+      fullPath: '/$providerId/$serverSlug/$channelId/$messageId'
+      preLoaderRoute: typeof ProviderIdServerSlugChannelIdMessageIdRouteImport
       parentRoute: typeof ProviderIdServerSlugRoute
     }
   }
 }
 
 interface ProviderIdServerSlugRouteChildren {
-  ProviderIdServerSlugChannelIdRoute: typeof ProviderIdServerSlugChannelIdRoute
   ProviderIdServerSlugSettingsRoute: typeof ProviderIdServerSlugSettingsRoute
   ProviderIdServerSlugIndexRoute: typeof ProviderIdServerSlugIndexRoute
+  ProviderIdServerSlugChannelIdMessageIdRoute: typeof ProviderIdServerSlugChannelIdMessageIdRoute
+  ProviderIdServerSlugChannelIdIndexRoute: typeof ProviderIdServerSlugChannelIdIndexRoute
 }
 
 const ProviderIdServerSlugRouteChildren: ProviderIdServerSlugRouteChildren = {
-  ProviderIdServerSlugChannelIdRoute: ProviderIdServerSlugChannelIdRoute,
   ProviderIdServerSlugSettingsRoute: ProviderIdServerSlugSettingsRoute,
   ProviderIdServerSlugIndexRoute: ProviderIdServerSlugIndexRoute,
+  ProviderIdServerSlugChannelIdMessageIdRoute:
+    ProviderIdServerSlugChannelIdMessageIdRoute,
+  ProviderIdServerSlugChannelIdIndexRoute:
+    ProviderIdServerSlugChannelIdIndexRoute,
 }
 
 const ProviderIdServerSlugRouteWithChildren =

@@ -1,6 +1,6 @@
 import { db } from "../../../../db";
 import { messages } from "../../../../db/schemas/business";
-import { and, eq, isNull, lt, desc } from "drizzle-orm";
+import { and, eq, lt, desc } from "drizzle-orm";
 import { authenticateEvent } from "../../../../utils/auth-any";
 import { ResponseError } from "../../../../utils/auth";
 
@@ -15,7 +15,7 @@ export async function handleGetMessages(req: Request, channelId: string) {
   const limit = Math.min(parseInt(query.limit as string) || 50, 100);
   const cursor = query.cursor ? parseInt(query.cursor as string) : null;
 
-  const conditions = [eq(messages.channelId, channelId), isNull(messages.parentId)];
+  const conditions = [eq(messages.channelId, channelId)];
 
   if (cursor !== null && !isNaN(cursor)) {
     conditions.push(lt(messages.seq, cursor));
