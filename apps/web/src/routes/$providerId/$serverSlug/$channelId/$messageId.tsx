@@ -5,7 +5,7 @@ import {
   getApiMessagesByMessageIdThread,
   postApiChannelsByChannelIdMessages,
 } from "openapi";
-import { ArrowLeft, Clipboard, CornerDownRight, Send } from "lucide-react";
+import { ArrowLeft, ChevronDown, Clipboard, CornerDownRight, Send } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -40,7 +40,9 @@ function MessageDetailPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; msg: MessageItem } | null>(null);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // 加载父消息和所有关联消息（回复 + 话题）
@@ -216,10 +218,30 @@ function MessageDetailPage() {
     };
   }, [channelId, messageId]);
 
-  // 新回复滚动到底部
+  // 智能滚动：在底部时自动滚动，不在底部时累计新消息数
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    if (atBottom) {
+      threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else if (threadReplies.length > 0) {
+      setNewMessageCount((prev) => prev + 1);
+    }
   }, [threadReplies]);
+
+  // 监听手动滚动，滚到底部时重置新消息计数
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 100) {
+        setNewMessageCount(0);
+      }
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   // 点击空白处关闭右键菜单
   useEffect(() => {
@@ -344,7 +366,10 @@ function MessageDetailPage() {
       </div>
 
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 relative">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 relative"
+      >
         {/* 父消息（固定置顶） */}
         <div className="bg-surface border border-hairline rounded-xl p-4 shadow-soft">
           <div className="flex items-start gap-3">
@@ -434,6 +459,22 @@ function MessageDetailPage() {
           </div>
         )}
         <div ref={threadEndRef} />
+
+        {/* 滚动到底部按钮 */}
+        {newMessageCount > 0 && (
+          <div className="sticky bottom-4 z-10 flex justify-center">
+            <button
+              onClick={() => {
+                threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                setNewMessageCount(0);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-ink text-white rounded-full shadow-xl border border-white/10 text-sm font-medium hover:bg-ink-soft hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span>{newMessageCount} 条新消息</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 右键菜单 */}

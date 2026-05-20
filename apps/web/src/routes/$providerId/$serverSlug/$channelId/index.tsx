@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getApiChannelsByChannelIdMessages, postApiChannelsByChannelIdMessages } from "openapi";
-import { CornerDownRight, MessageSquare, Send, X, Clipboard } from "lucide-react";
+import { ChevronDown, CornerDownRight, MessageSquare, Send, X, Clipboard } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -48,7 +48,9 @@ function ChannelChatComponent() {
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; msg: MessageItem } | null>(null);
   // 保存原始消息列表（未过滤话题消息），用于统计 parentId 引用数
   const rawMessagesRef = useRef<MessageItem[]>([]);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // 加载初始消息历史（过滤掉话题内消息，并按时间升序排列）
@@ -157,10 +159,30 @@ function ChannelChatComponent() {
     return () => clearInterval(timer);
   }, [channelId, wsConnected]);
 
-  // 新消息滚动到底部
+  // 智能滚动：在底部时自动滚动，不在底部时累计新消息数
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    if (atBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else if (messages.length > 0) {
+      setNewMessageCount((prev) => prev + 1);
+    }
   }, [messages]);
+
+  // 监听手动滚动，滚到底部时重置新消息计数
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 100) {
+        setNewMessageCount(0);
+      }
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   // 点击空白处关闭右键菜单
   useEffect(() => {
@@ -274,7 +296,7 @@ function ChannelChatComponent() {
       </div>
 
       {/* 消息流区域 */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 relative">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 relative">
         {loading && messages.length === 0 ? (
           <div className="text-meta text-muted text-center py-10">加载历史消息中...</div>
         ) : messages.length === 0 ? (
@@ -399,6 +421,22 @@ function ChannelChatComponent() {
           </div>
         )}
         <div ref={messagesEndRef} />
+
+        {/* 滚动到底部按钮 */}
+        {newMessageCount > 0 && (
+          <div className="sticky bottom-4 z-10 flex justify-center">
+            <button
+              onClick={() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                setNewMessageCount(0);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-ink text-white rounded-full shadow-xl border border-white/10 text-sm font-medium hover:bg-ink-soft hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronDown className="h-4 w-4" />
+              <span>{newMessageCount} 条新消息</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 右键菜单 */}
