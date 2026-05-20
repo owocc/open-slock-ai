@@ -9,15 +9,6 @@ import type {
   ChangePasswordData,
   ChangePasswordErrors,
   ChangePasswordResponses,
-  DeleteApiChannelGroupsByGroupIdData,
-  DeleteApiChannelGroupsByGroupIdErrors,
-  DeleteApiChannelGroupsByGroupIdResponses,
-  DeleteApiChannelsByChannelIdData,
-  DeleteApiChannelsByChannelIdErrors,
-  DeleteApiChannelsByChannelIdResponses,
-  DeleteApiServersByServerIdData,
-  DeleteApiServersByServerIdErrors,
-  DeleteApiServersByServerIdResponses,
   DeleteUserData,
   DeleteUserErrors,
   DeleteUserResponses,
@@ -46,9 +37,6 @@ import type {
   GetApiResponses,
   GetApiServersByServerIdAgentsData,
   GetApiServersByServerIdAgentsResponses,
-  GetApiServersByServerIdChannelGroupsData,
-  GetApiServersByServerIdChannelGroupsErrors,
-  GetApiServersByServerIdChannelGroupsResponses,
   GetApiServersByServerIdChannelsData,
   GetApiServersByServerIdChannelsResponses,
   GetApiServersData,
@@ -99,30 +87,12 @@ import type {
   PostApiMachinesRegisterData,
   PostApiMachinesRegisterErrors,
   PostApiMachinesRegisterResponses,
-  PostApiServersByServerIdChannelGroupsData,
-  PostApiServersByServerIdChannelGroupsErrors,
-  PostApiServersByServerIdChannelGroupsResponses,
   PostApiServersByServerIdChannelsData,
   PostApiServersByServerIdChannelsErrors,
   PostApiServersByServerIdChannelsResponses,
   PostApiServersData,
   PostApiServersErrors,
   PostApiServersResponses,
-  PutApiChannelGroupsByGroupIdData,
-  PutApiChannelGroupsByGroupIdErrors,
-  PutApiChannelGroupsByGroupIdResponses,
-  PutApiChannelsByChannelIdData,
-  PutApiChannelsByChannelIdErrors,
-  PutApiChannelsByChannelIdResponses,
-  PutApiServersByServerIdChannelGroupsSortData,
-  PutApiServersByServerIdChannelGroupsSortErrors,
-  PutApiServersByServerIdChannelGroupsSortResponses,
-  PutApiServersByServerIdChannelsSortData,
-  PutApiServersByServerIdChannelsSortErrors,
-  PutApiServersByServerIdChannelsSortResponses,
-  PutApiServersByServerIdData,
-  PutApiServersByServerIdErrors,
-  PutApiServersByServerIdResponses,
   RequestPasswordResetData,
   RequestPasswordResetErrors,
   RequestPasswordResetResponses,
@@ -220,44 +190,9 @@ export const postApiServers = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * 删除服务器
- *
- * 级联物理删除特定的频道工作服务器空间
- */
-export const deleteApiServersByServerId = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteApiServersByServerIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteApiServersByServerIdResponses,
-    DeleteApiServersByServerIdErrors,
-    ThrowOnError
-  >({ url: "/api/servers/{serverId}", ...options });
-
-/**
- * 更新服务器
- *
- * 更新指定服务器的信息（例如修改显示名称或Slug）
- */
-export const putApiServersByServerId = <ThrowOnError extends boolean = false>(
-  options: Options<PutApiServersByServerIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    PutApiServersByServerIdResponses,
-    PutApiServersByServerIdErrors,
-    ThrowOnError
-  >({
-    url: "/api/servers/{serverId}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
  * 获取频道列表
  *
- * 获取指定服务器空间内的所有文字聊天频道（支持排序和归档过滤）
+ * 获取指定服务器空间内的所有文字聊天频道
  */
 export const getApiServersByServerIdChannels = <ThrowOnError extends boolean = false>(
   options: Options<GetApiServersByServerIdChannelsData, ThrowOnError>,
@@ -281,153 +216,6 @@ export const postApiServersByServerIdChannels = <ThrowOnError extends boolean = 
     ThrowOnError
   >({
     url: "/api/servers/{serverId}/channels",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * 硬删除频道
- *
- * 物理删除特定的单条文字聊天频道及级联消息
- */
-export const deleteApiChannelsByChannelId = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteApiChannelsByChannelIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteApiChannelsByChannelIdResponses,
-    DeleteApiChannelsByChannelIdErrors,
-    ThrowOnError
-  >({ url: "/api/channels/{channelId}", ...options });
-
-/**
- * 更新频道
- *
- * 更新指定频道的配置、修改排序索引或切换归档（假删除）/解档状态
- */
-export const putApiChannelsByChannelId = <ThrowOnError extends boolean = false>(
-  options: Options<PutApiChannelsByChannelIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    PutApiChannelsByChannelIdResponses,
-    PutApiChannelsByChannelIdErrors,
-    ThrowOnError
-  >({
-    url: "/api/channels/{channelId}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * 批量排序频道
- *
- * 对指定服务器下的多个频道进行批量排序与所属分组调整
- */
-export const putApiServersByServerIdChannelsSort = <ThrowOnError extends boolean = false>(
-  options: Options<PutApiServersByServerIdChannelsSortData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    PutApiServersByServerIdChannelsSortResponses,
-    PutApiServersByServerIdChannelsSortErrors,
-    ThrowOnError
-  >({
-    url: "/api/servers/{serverId}/channels/sort",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * 获取分组及嵌套频道列表
- *
- * 获取指定服务器空间内的所有频道分组，及其包含的活动聊天频道
- */
-export const getApiServersByServerIdChannelGroups = <ThrowOnError extends boolean = false>(
-  options: Options<GetApiServersByServerIdChannelGroupsData, ThrowOnError>,
-) =>
-  (options.client ?? client).get<
-    GetApiServersByServerIdChannelGroupsResponses,
-    GetApiServersByServerIdChannelGroupsErrors,
-    ThrowOnError
-  >({ url: "/api/servers/{serverId}/channel-groups", ...options });
-
-/**
- * 创建频道分组
- *
- * 在指定服务器中创建一个新的频道分组分类
- */
-export const postApiServersByServerIdChannelGroups = <ThrowOnError extends boolean = false>(
-  options: Options<PostApiServersByServerIdChannelGroupsData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    PostApiServersByServerIdChannelGroupsResponses,
-    PostApiServersByServerIdChannelGroupsErrors,
-    ThrowOnError
-  >({
-    url: "/api/servers/{serverId}/channel-groups",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * 硬删除频道分组
- *
- * 物理删除特定的单个分组，所拥有的频道自关联会被级联设空(null)
- */
-export const deleteApiChannelGroupsByGroupId = <ThrowOnError extends boolean = false>(
-  options: Options<DeleteApiChannelGroupsByGroupIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).delete<
-    DeleteApiChannelGroupsByGroupIdResponses,
-    DeleteApiChannelGroupsByGroupIdErrors,
-    ThrowOnError
-  >({ url: "/api/channel-groups/{groupId}", ...options });
-
-/**
- * 修改频道分组
- *
- * 更新指定频道分组的名称或排序标记权重值
- */
-export const putApiChannelGroupsByGroupId = <ThrowOnError extends boolean = false>(
-  options: Options<PutApiChannelGroupsByGroupIdData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    PutApiChannelGroupsByGroupIdResponses,
-    PutApiChannelGroupsByGroupIdErrors,
-    ThrowOnError
-  >({
-    url: "/api/channel-groups/{groupId}",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-/**
- * 批量排序频道分组
- *
- * 批量快速对指定服务器下的所有频道分组排序权重进行多条调整
- */
-export const putApiServersByServerIdChannelGroupsSort = <ThrowOnError extends boolean = false>(
-  options: Options<PutApiServersByServerIdChannelGroupsSortData, ThrowOnError>,
-) =>
-  (options.client ?? client).put<
-    PutApiServersByServerIdChannelGroupsSortResponses,
-    PutApiServersByServerIdChannelGroupsSortErrors,
-    ThrowOnError
-  >({
-    url: "/api/servers/{serverId}/channel-groups/sort",
     ...options,
     headers: {
       "Content-Type": "application/json",

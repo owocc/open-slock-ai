@@ -44,6 +44,7 @@ import {
 } from "./api/channels/[channelId]/messages/index.post";
 import { handleGetThread } from "./api/messages/[messageId]/thread.get";
 import { ResponseError } from "./utils/auth";
+import { subscribe, unsubscribe, unsubscribeAll, broadcastToChannel } from "./utils/ws-room";
 
 import { swaggerUI } from "@hono/swagger-ui";
 import { apiReference } from "@scalar/hono-api-reference";
@@ -80,15 +81,26 @@ app.get(
     onOpen(_evt, _ws) {
       console.log("[WS] Connected");
     },
-    async onMessage(evt, ws) {
+    onMessage(evt, ws) {
       const message = evt.data;
       const msgStr =
         typeof message === "string" ? message : new TextDecoder().decode(message as ArrayBuffer);
-      console.log(`[WS] Received: ${msgStr}`);
-      ws.send(`Echo: ${msgStr}`);
+      try {
+        const data = JSON.parse(msgStr);
+        if (data.type === "subscribe" && data.channelId) {
+          subscribe(ws, data.channelId);
+          console.log(`[WS] Subscribed to channel: ${data.channelId}`);
+        } else if (data.type === "unsubscribe" && data.channelId) {
+          unsubscribe(ws, data.channelId);
+          console.log(`[WS] Unsubscribed from channel: ${data.channelId}`);
+        }
+      } catch {
+        console.log(`[WS] Invalid message: ${msgStr}`);
+      }
     },
-    onClose(evt, _ws) {
-      console.log(`[WS] Closed: ${evt.code} - ${evt.reason}`);
+    onClose(_evt, ws) {
+      unsubscribeAll(ws);
+      console.log("[WS] Disconnected");
     },
   })),
 );
@@ -535,7 +547,9 @@ app.post(
   async (c) => {
     const channelId = c.req.param("channelId");
     const data = c.req.valid("json" as any);
-    return c.json(await handlePostMessages(c.req.raw, channelId, data));
+    const result = await handlePostMessages(c.req.raw, channelId, data);
+    broadcastToChannel(channelId, JSON.stringify({ type: "message", message: result }));
+    return c.json(result);
   },
 );
 

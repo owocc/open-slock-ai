@@ -5,6 +5,7 @@ import { Send } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { SidebarTrigger } from "#/components/ui/sidebar";
+import { getActiveEndpoint } from "../../../lib/server-config";
 
 export const Route = createFileRoute("/$providerId/$serverSlug/$channelId")({
   component: ChannelChatComponent,
@@ -18,21 +19,32 @@ interface MessageItem {
   createdAt: string;
 }
 
+function getWsUrl(): string {
+  const endpoint = getActiveEndpoint();
+  const baseUrl = endpoint.baseUrl.replace(/^http/, "ws");
+  return `${baseUrl}/api/ws`;
+}
+
 function ChannelChatComponent() {
   const { channelId } = Route.useParams();
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
+  // 加载初始消息历史
   const fetchMessages = async () => {
     try {
       const res = await getApiChannelsByChannelIdMessages({
         path: { channelId },
       });
-      if (res && Array.isArray(res)) {
-        setMessages(res as MessageItem[]);
+      // SDK 可能返回 { data, error } 包裹，也可能是裸数据
+      const list = (res as any)?.data ?? res;
+      if (list && Array.isArray(list)) {
+        setMessages(list as MessageItem[]);
       }
     } catch (err) {
       console.error("Failed to load channel messages", err);
@@ -41,22 +53,91 @@ function ChannelChatComponent() {
     }
   };
 
-  // 轮询作为消息更新的选择
+  // 初始加载
   useEffect(() => {
     if (channelId) {
       setLoading(true);
+      setMessages([]);
       void fetchMessages();
-
-      const timer = setInterval(() => {
-        void fetchMessages();
-      }, 2000);
-
-      return () => {
-        clearInterval(timer);
-      };
     }
   }, [channelId]);
 
+  // WebSocket 连接管理
+  useEffect(() => {
+    if (!channelId) return;
+
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+
+    const connect = () => {
+      if (closed) return;
+
+      const ws = new WebSocket(getWsUrl());
+
+      ws.onopen = () => {
+        if (closed) {
+          ws.close();
+          return;
+        }
+        ws.send(JSON.stringify({ type: "subscribe", channelId }));
+        setWsConnected(true);
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          if (data.type === "message" && data.message) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === data.message.id)) return prev;
+              return [...prev, data.message as MessageItem];
+            });
+          }
+        } catch {
+          // ignore non-JSON messages
+        }
+      };
+
+      ws.onclose = () => {
+        setWsConnected(false);
+        wsRef.current = null;
+        if (!closed) {
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+
+      wsRef.current = ws;
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [channelId]);
+
+  // 兜底轮询：WS 断开时每隔 10s 拉取一次，防止错过消息
+  useEffect(() => {
+    if (!channelId) return;
+
+    const timer = setInterval(() => {
+      if (!wsConnected) {
+        void fetchMessages();
+      }
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [channelId, wsConnected]);
+
+  // 新消息滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -70,14 +151,21 @@ function ChannelChatComponent() {
     setSending(true);
 
     try {
-      await postApiChannelsByChannelIdMessages({
+      const result = await postApiChannelsByChannelIdMessages({
         path: { channelId },
         body: {
           content: messageText,
           senderType: "human",
         },
       });
-      await fetchMessages();
+      // 立即追加到列表（WS 广播到达时通过 id 去重）
+      const newMsg = (result as any)?.data ?? (result as any);
+      if (newMsg && newMsg.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg as MessageItem];
+        });
+      }
     } catch (err) {
       console.error("Failed to send message", err);
     } finally {
@@ -103,6 +191,9 @@ function ChannelChatComponent() {
         <SidebarTrigger className="mr-3 cursor-pointer shrink-0" />
         <span className="text-title text-ink font-semibold tracking-wide flex items-center gap-1.5 animate-in fade-in duration-200">
           <span className="text-muted">#</span> 聊天频道
+          {wsConnected && (
+            <span className="ml-2 w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+          )}
         </span>
       </div>
 
