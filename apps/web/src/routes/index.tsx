@@ -198,7 +198,7 @@ function Home() {
           <div>
             <h1 className="text-base font-semibold leading-tight text-ink">OpenSlock</h1>
             <p className="text-[10px] text-muted tracking-wider uppercase font-medium">
-              自托管云智能云盘与协作中心
+              自托管Agent协作中心
             </p>
           </div>
         </div>

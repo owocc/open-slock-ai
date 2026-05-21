@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.6.11",
     "@hono/standard-validator": "^0.2.0",
     "@hono/swagger-ui": "^0.4.1",
     "@scalar/hono-api-reference": "^0.5.158",
